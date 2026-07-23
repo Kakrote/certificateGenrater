@@ -7,11 +7,32 @@ import { CertificateRecord } from "@/lib/types";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
+function findInDataset(phoneQuery: string): CertificateRecord | null {
+  const digitsQuery = phoneQuery.replace(/\D/g, "");
+  if (!digitsQuery) return null;
+  const coreTarget = digitsQuery.length >= 10 ? digitsQuery.slice(-10) : digitsQuery;
+
+  return (
+    (testingData as CertificateRecord[]).find((rec) => {
+      const recDigits = (rec.phone || "").replace(/\D/g, "");
+      if (!recDigits) return false;
+      const recCore = recDigits.length >= 10 ? recDigits.slice(-10) : recDigits;
+
+      return (
+        recDigits.includes(coreTarget) ||
+        recCore.includes(coreTarget) ||
+        coreTarget.includes(recCore) ||
+        recDigits.includes(digitsQuery) ||
+        digitsQuery.includes(recDigits)
+      );
+    }) || null
+  );
+}
+
 // Seed testingData.json records into SQLite database
 async function ensureTestingData() {
   try {
     const count = await db.certificate.count();
-    // If database is empty or has old demo count (<= 10), re-seed with 597 testing.xlsx records
     if (count <= 10) {
       await db.certificate.deleteMany({});
       for (const cert of testingData as CertificateRecord[]) {
@@ -21,7 +42,7 @@ async function ensureTestingData() {
             certificateId: cert.certificateId,
             name: cert.name,
             phone: cert.phone,
-            cleanPhone: cleanPhoneNumber(cert.phone),
+            cleanPhone: cert.phone.replace(/\D/g, ""),
             driveUrl: cert.driveUrl,
             event: cert.event,
             issueDate: cert.issueDate,
@@ -43,10 +64,12 @@ export async function GET(request: Request) {
     const phone = searchParams.get("phone");
 
     if (phone) {
-      const cleanTarget = cleanPhoneNumber(phone);
-      if (!cleanTarget) {
+      const digitsQuery = phone.replace(/\D/g, "");
+      if (!digitsQuery) {
         return NextResponse.json({ success: false, message: "Invalid phone query" }, { status: 400 });
       }
+
+      const coreTarget = digitsQuery.length >= 10 ? digitsQuery.slice(-10) : digitsQuery;
 
       try {
         await db.systemStat.upsert({
@@ -55,11 +78,14 @@ export async function GET(request: Request) {
           create: { key: "lookupCount", value: 597 },
         });
 
+        // Query SQLite database with clean digits or raw phone
         const certificates = await db.certificate.findMany({
           where: {
             OR: [
-              { cleanPhone: { contains: cleanTarget } },
-              { phone: { contains: cleanTarget } },
+              { cleanPhone: { contains: coreTarget } },
+              { phone: { contains: coreTarget } },
+              { cleanPhone: { contains: digitsQuery } },
+              { phone: { contains: digitsQuery } },
             ],
           },
         });
@@ -69,13 +95,12 @@ export async function GET(request: Request) {
         }
       } catch (dbErr) {
         console.warn("DB search fallback to JSON:", dbErr);
-        const match = (testingData as CertificateRecord[]).find((rec) => {
-          const recClean = cleanPhoneNumber(rec.phone);
-          return recClean.includes(cleanTarget) || cleanTarget.includes(recClean);
-        });
-        if (match) {
-          return NextResponse.json({ success: true, certificate: match });
-        }
+      }
+
+      // Memory fallback
+      const match = findInDataset(phone);
+      if (match) {
+        return NextResponse.json({ success: true, certificate: match });
       }
 
       return NextResponse.json(
@@ -91,19 +116,22 @@ export async function GET(request: Request) {
 
       const lookupStat = await db.systemStat.findUnique({ where: { key: "lookupCount" } });
 
-      return NextResponse.json({
-        success: true,
-        certificates: allCerts,
-        totalLookups: lookupStat?.value || 597,
-      });
+      if (allCerts.length > 0) {
+        return NextResponse.json({
+          success: true,
+          certificates: allCerts,
+          totalLookups: lookupStat?.value || 597,
+        });
+      }
     } catch (dbErr) {
       console.warn("DB list fallback to JSON:", dbErr);
-      return NextResponse.json({
-        success: true,
-        certificates: testingData,
-        totalLookups: 597,
-      });
     }
+
+    return NextResponse.json({
+      success: true,
+      certificates: testingData,
+      totalLookups: 597,
+    });
   } catch (error) {
     console.error("GET /api/certificates error:", error);
     return NextResponse.json({
@@ -132,7 +160,7 @@ export async function POST(request: Request) {
     }
 
     if (body.name && body.phone) {
-      const clean = cleanPhoneNumber(body.phone);
+      const digits = body.phone.replace(/\D/g, "");
       const certId = body.certificateId || `CERT-2026-${Math.floor(1000 + Math.random() * 9000)}`;
 
       try {
@@ -141,7 +169,7 @@ export async function POST(request: Request) {
             certificateId: certId,
             name: body.name,
             phone: body.phone,
-            cleanPhone: clean,
+            cleanPhone: digits,
             driveUrl: body.driveUrl || "https://uuassets.uudoon.in/Documents/AIIW2025PC/WPC-1.jpg",
             event: body.event || "General Certificate",
             issueDate: body.issueDate || new Date().toISOString().split("T")[0],
@@ -162,7 +190,7 @@ export async function POST(request: Request) {
             certificateId: certId,
             name: body.name,
             phone: body.phone,
-            cleanPhone: clean,
+            cleanPhone: digits,
             driveUrl: body.driveUrl,
             event: body.event,
             issueDate: body.issueDate,
@@ -193,7 +221,7 @@ export async function PUT(request: Request) {
         data: {
           name: body.name,
           phone: body.phone,
-          cleanPhone: cleanPhoneNumber(body.phone || ""),
+          cleanPhone: (body.phone || "").replace(/\D/g, ""),
           driveUrl: body.driveUrl,
           event: body.event,
           issueDate: body.issueDate,
