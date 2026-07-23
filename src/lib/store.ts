@@ -25,7 +25,9 @@ export function getStoredCertificates(): CertificateRecord[] {
 export function saveStoredCertificates(certs: CertificateRecord[]): void {
   if (typeof window === "undefined") return;
   try {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(certs));
+    if (Array.isArray(certs) && certs.length > 0) {
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(certs));
+    }
   } catch (e) {
     console.error("Failed to save certificates to localStorage", e);
   }
@@ -33,15 +35,21 @@ export function saveStoredCertificates(certs: CertificateRecord[]): void {
 
 export async function fetchCertificatesFromApi(): Promise<{ certificates: CertificateRecord[]; totalLookups: number }> {
   try {
-    const res = await fetch("/api/certificates");
-    if (!res.ok) throw new Error("API failed");
-    const json = await res.json();
-    if (json.success && Array.isArray(json.certificates) && json.certificates.length > 0) {
-      saveStoredCertificates(json.certificates);
-      return { certificates: json.certificates, totalLookups: json.totalLookups || 597 };
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+    const res = await fetch("/api/certificates", { signal: controller.signal });
+    clearTimeout(timeoutId);
+
+    if (res.ok) {
+      const json = await res.json();
+      if (json.success && Array.isArray(json.certificates) && json.certificates.length > 0) {
+        saveStoredCertificates(json.certificates);
+        return { certificates: json.certificates, totalLookups: json.totalLookups || 597 };
+      }
     }
   } catch (e) {
-    console.warn("Falling back to embedded dataset", e);
+    console.warn("API fetch timeout or error, using local dataset", e);
   }
   return { certificates: getStoredCertificates(), totalLookups: getLookupCount() };
 }
@@ -49,8 +57,17 @@ export async function fetchCertificatesFromApi(): Promise<{ certificates: Certif
 export async function findCertificateByPhoneApi(phoneQuery: string): Promise<CertificateRecord | null> {
   if (!phoneQuery) return null;
 
+  // 1. Try local instant search first for 0ms response time
+  const localList = getStoredCertificates();
+  const instantMatch = findCertificateByPhone(phoneQuery, localList) || findCertificateByPhone(phoneQuery, INITIAL_CERTIFICATES);
+
   try {
-    const res = await fetch(`/api/certificates?phone=${encodeURIComponent(phoneQuery)}`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
+
+    const res = await fetch(`/api/certificates?phone=${encodeURIComponent(phoneQuery)}`, { signal: controller.signal });
+    clearTimeout(timeoutId);
+
     if (res.ok) {
       const json = await res.json();
       if (json.success && json.certificate) {
@@ -58,23 +75,40 @@ export async function findCertificateByPhoneApi(phoneQuery: string): Promise<Cer
       }
     }
   } catch {
-    // Fallback to local search
+    // Silent catch, fallback to instantMatch
   }
 
-  const currentList = getStoredCertificates();
-  return findCertificateByPhone(phoneQuery, currentList);
+  return instantMatch;
 }
 
 export function findCertificateByPhone(phoneQuery: string, records: CertificateRecord[]): CertificateRecord | null {
-  if (!phoneQuery) return null;
+  if (!phoneQuery || !Array.isArray(records)) return null;
   const digitsQuery = phoneQuery.replace(/\D/g, "");
   if (!digitsQuery) return null;
 
   // Extract core subscriber digits (last 10 digits)
   const coreTarget = digitsQuery.length >= 10 ? digitsQuery.slice(-10) : digitsQuery;
 
-  return (
-    records.find((rec) => {
+  // Search provided records list
+  const match = records.find((rec) => {
+    const recDigits = (rec.phone || "").replace(/\D/g, "");
+    if (!recDigits) return false;
+    const recCore = recDigits.length >= 10 ? recDigits.slice(-10) : recDigits;
+
+    return (
+      recDigits.includes(coreTarget) ||
+      recCore.includes(coreTarget) ||
+      coreTarget.includes(recCore) ||
+      recDigits.includes(digitsQuery) ||
+      digitsQuery.includes(recDigits)
+    );
+  });
+
+  if (match) return match;
+
+  // Fallback search in embedded INITIAL_CERTIFICATES if provided list yielded no match
+  if (records !== INITIAL_CERTIFICATES) {
+    return INITIAL_CERTIFICATES.find((rec) => {
       const recDigits = (rec.phone || "").replace(/\D/g, "");
       if (!recDigits) return false;
       const recCore = recDigits.length >= 10 ? recDigits.slice(-10) : recDigits;
@@ -86,8 +120,10 @@ export function findCertificateByPhone(phoneQuery: string, records: CertificateR
         recDigits.includes(digitsQuery) ||
         digitsQuery.includes(recDigits)
       );
-    }) || null
-  );
+    }) || null;
+  }
+
+  return null;
 }
 
 export async function incrementCertificateDownloadApi(id: string): Promise<CertificateRecord[]> {

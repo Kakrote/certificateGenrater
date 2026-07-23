@@ -7,6 +7,7 @@ import {
   findCertificateByPhoneApi,
   incrementCertificateDownloadApi,
   recordLookupEvent,
+  INITIAL_CERTIFICATES,
 } from "@/lib/store";
 import { CertificatePreview } from "./CertificatePreview";
 import { useToast } from "./Toast";
@@ -26,11 +27,11 @@ export const UserPortal: React.FC = () => {
   const [searching, setSearching] = useState(false);
   const [foundCertificate, setFoundCertificate] = useState<CertificateRecord | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
-  const [records, setRecords] = useState<CertificateRecord[]>([]);
+  const [records, setRecords] = useState<CertificateRecord[]>(INITIAL_CERTIFICATES);
 
   useEffect(() => {
     fetchCertificatesFromApi().then((data) => {
-      if (data && Array.isArray(data.certificates)) {
+      if (data && Array.isArray(data.certificates) && data.certificates.length > 0) {
         setRecords(data.certificates);
       }
     }).catch(() => {});
@@ -86,10 +87,11 @@ export const UserPortal: React.FC = () => {
         setFoundCertificate(null);
         showToast("No Record Found", "No certificate found associated with this phone number.", "error");
       }
-    } catch {
+    } catch (err) {
+      console.warn("Search error:", err);
       setSearching(false);
       setFoundCertificate(null);
-      showToast("Search Error", "An error occurred while querying records.", "error");
+      showToast("Search Error", "Could not complete lookup. Please try again.", "error");
     }
   };
 
@@ -111,7 +113,7 @@ export const UserPortal: React.FC = () => {
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-8">
-      {/* Hero Section - Clean HTML without opacity: 0 SSR traps */}
+      {/* Hero Section */}
       <div className="text-center space-y-4 pt-4 sm:pt-8">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold shadow-xs">
           <ShieldCheck className="w-4 h-4 text-emerald-600" />
@@ -127,7 +129,7 @@ export const UserPortal: React.FC = () => {
         </p>
       </div>
 
-      {/* Search Bar Card - Always Visible by Default */}
+      {/* Search Bar Card */}
       <div className="bg-white border border-slate-200/90 p-4 sm:p-6 rounded-3xl shadow-xl shadow-emerald-950/5 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-72 h-72 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
 
@@ -174,12 +176,7 @@ export const UserPortal: React.FC = () => {
           {/* Quick Test Chips */}
           <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
             <span className="text-xs text-slate-500 font-medium">Quick Test Numbers:</span>
-            {(records.length > 0 ? records : [
-              { id: "1", phone: "7018321825", name: "MS. GULSHAN ATTRI" },
-              { id: "2", phone: "9459411726", name: "MS. JAGRITY SHARMA" },
-              { id: "3", phone: "8126486834", name: "MR. RISHI DEV NAUTIYAL" },
-              { id: "4", phone: "9837063262", name: "ER. RAJA JOSHI" },
-            ]).slice(0, 4).map((rec) => (
+            {(records.length > 0 ? records : INITIAL_CERTIFICATES).slice(0, 4).map((rec) => (
               <button
                 key={rec.id}
                 type="button"

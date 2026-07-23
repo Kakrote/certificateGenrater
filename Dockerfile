@@ -1,8 +1,7 @@
 # -----------------------------
-# Stage 1 - Install Dependencies
+# Stage 1 - Dependencies
 # -----------------------------
 FROM node:20-slim AS deps
-
 WORKDIR /app
 
 RUN apt-get update && \
@@ -15,14 +14,12 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
-
 RUN npm ci
 
 # -----------------------------
-# Stage 2 - Build
+# Stage 2 - Builder
 # -----------------------------
 FROM node:20-slim AS builder
-
 WORKDIR /app
 
 RUN apt-get update && \
@@ -43,17 +40,13 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Generate Prisma Client
 RUN npx prisma generate
 
-# Build Next.js
+# Build Next.js standalone application
 RUN npm run build
 
-# Remove development dependencies
-RUN npm prune --omit=dev
-
 # -----------------------------
-# Stage 3 - Runtime
+# Stage 3 - Production Runner
 # -----------------------------
 FROM node:20-slim AS runner
-
 WORKDIR /app
 
 RUN apt-get update && \
@@ -67,19 +60,17 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
-RUN groupadd -g 1001 nodejs && \
-    useradd -r -u 1001 -g nodejs nextjs
-
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/.next ./.next
+# Copy standalone build artifacts & prisma seed assets
 COPY --from=builder /app/public ./public
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/src/lib/testingData.json ./src/lib/testingData.json
 
-RUN chown -R nextjs:nodejs /app
-
-USER nextjs
+# Ensure prisma directory permissions
+RUN mkdir -p /app/prisma && chmod -R 777 /app/prisma
 
 EXPOSE 3000
 
-CMD ["npm", "start"]
+# Push database schema, seed testing.xlsx records, and start server
+CMD ["sh", "-c", "npx prisma db push --skip-generate && node prisma/seed.js && node server.js"]
