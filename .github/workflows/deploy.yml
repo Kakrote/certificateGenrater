@@ -10,17 +10,17 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Sync project to VPS
+      - name: Update Repository
         run: |
-          rsync -av --delete ./ /opt/apps/certificateGenrater/
+          cd /opt/apps/certificateGenrater
+          git fetch origin
+          git reset --hard origin/main
 
-      - name: Build & Restart Docker
+      - name: Build & Restart
         run: |
           cd /opt/apps/certificateGenrater
           docker compose up -d --build
 
-      - name: Remove old images
-        run: docker image prune -f
+      - name: Cleanup
+        run: |
+          docker image prune -f
