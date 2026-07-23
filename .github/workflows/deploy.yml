@@ -10,11 +10,14 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      - name: Update Repository
+      - uses: actions/checkout@v4
+
+      - name: Sync project
         run: |
-          cd /opt/apps/certificateGenrater
-          git fetch origin
-          git reset --hard origin/main
+          rsync -av --delete \
+            --exclude=".git" \
+            --exclude=".env" \
+            ./ /opt/apps/certificateGenrater/
 
       - name: Build & Restart
         run: |
