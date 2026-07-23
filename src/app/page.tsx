@@ -1,10 +1,11 @@
-"use client";
-
 import React from "react";
 import { Navbar } from "@/components/Navbar";
 import { UserPortal } from "@/components/UserPortal";
 import { ToastProvider } from "@/components/Toast";
 import { ShieldCheck } from "lucide-react";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default function Home() {
   return (
