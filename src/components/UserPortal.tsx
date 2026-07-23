@@ -111,43 +111,24 @@ export const UserPortal: React.FC = () => {
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-8">
-      {/* Hero Section */}
+      {/* Hero Section - Clean HTML without opacity: 0 SSR traps */}
       <div className="text-center space-y-4 pt-4 sm:pt-8">
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold backdrop-blur-md shadow-xs"
-        >
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold shadow-xs">
           <ShieldCheck className="w-4 h-4 text-emerald-600" />
           <span>Official Certificate Verification Portal</span>
-        </motion.div>
+        </div>
 
-        <motion.h1
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight"
-        >
+        <h1 className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
           Retrieve Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700">Verified Certificate</span>
-        </motion.h1>
+        </h1>
 
-        <motion.p
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
-          className="text-slate-600 text-sm sm:text-base max-w-xl mx-auto leading-relaxed"
-        >
+        <p className="text-slate-600 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
           Enter your registered phone number to preview and download your official credential instantly.
-        </motion.p>
+        </p>
       </div>
 
-      {/* Search Bar Card */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.98 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.25 }}
-        className="bg-white border border-slate-200/90 p-4 sm:p-6 rounded-3xl shadow-xl shadow-emerald-950/5 backdrop-blur-xl relative overflow-hidden"
-      >
+      {/* Search Bar Card - Always Visible by Default */}
+      <div className="bg-white border border-slate-200/90 p-4 sm:p-6 rounded-3xl shadow-xl shadow-emerald-950/5 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-72 h-72 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
 
         <form
@@ -190,7 +171,7 @@ export const UserPortal: React.FC = () => {
             </button>
           </div>
 
-          {/* Quick Demo Chips */}
+          {/* Quick Test Chips */}
           <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
             <span className="text-xs text-slate-500 font-medium">Quick Test Numbers:</span>
             {(records.length > 0 ? records : [
@@ -210,7 +191,7 @@ export const UserPortal: React.FC = () => {
             ))}
           </div>
         </form>
-      </motion.div>
+      </div>
 
       {/* Results View */}
       <AnimatePresence mode="wait">
@@ -230,9 +211,9 @@ export const UserPortal: React.FC = () => {
         {!searching && hasSearched && foundCertificate && (
           <motion.div
             key="found"
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
+            exit={{ opacity: 0, y: -10 }}
             className="space-y-6"
           >
             <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between">
@@ -252,9 +233,9 @@ export const UserPortal: React.FC = () => {
         {!searching && hasSearched && !foundCertificate && (
           <motion.div
             key="notfound"
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
+            exit={{ opacity: 0, y: -10 }}
             className="bg-white border border-slate-200 rounded-3xl p-8 text-center space-y-4 max-w-lg mx-auto shadow-lg"
           >
             <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto">

@@ -257,11 +257,7 @@ export const AdminDashboard: React.FC = () => {
   if (!isAuthenticated) {
     return (
       <div className="w-full max-w-md mx-auto py-8 sm:py-16 space-y-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white border border-slate-200 p-6 sm:p-8 rounded-3xl backdrop-blur-xl shadow-xl shadow-emerald-950/5 space-y-6 text-center relative overflow-hidden"
-        >
+        <div className="bg-white border border-slate-200 p-6 sm:p-8 rounded-3xl backdrop-blur-xl shadow-xl shadow-emerald-950/5 space-y-6 text-center relative overflow-hidden">
           <div className="absolute top-0 right-0 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
           {/* Header Brand Logo */}
@@ -338,7 +334,7 @@ export const AdminDashboard: React.FC = () => {
               Sign In to Admin Dashboard
             </button>
           </form>
-        </motion.div>
+        </div>
       </div>
     );
   }
