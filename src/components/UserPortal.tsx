@@ -65,8 +65,9 @@ export const UserPortal: React.FC = () => {
   };
 
   const handleSearch = async (phoneToSearch?: string) => {
-    const target = phoneToSearch !== undefined ? phoneToSearch : phoneNumber;
-    if (!target.trim()) {
+    const target = (phoneToSearch !== undefined ? phoneToSearch : phoneNumber) || "";
+    const cleanTarget = target.trim();
+    if (!cleanTarget) {
       showToast("Phone Required", "Please enter your registered phone number to search.", "error");
       return;
     }
@@ -76,7 +77,7 @@ export const UserPortal: React.FC = () => {
     recordLookupEvent();
 
     try {
-      const match = await findCertificateByPhoneApi(target);
+      const match = await findCertificateByPhoneApi(cleanTarget);
       setSearching(false);
 
       if (match) {
@@ -106,8 +107,11 @@ export const UserPortal: React.FC = () => {
     }
   };
 
-  const handleQuickChip = (phone: string) => {
+  const handleQuickChip = (e: React.MouseEvent<HTMLButtonElement>, phone: string) => {
+    e.preventDefault();
+    e.stopPropagation();
     setPhoneNumber(phone);
+    setFoundCertificate(null);
     handleSearch(phone);
   };
 
@@ -180,10 +184,11 @@ export const UserPortal: React.FC = () => {
               <button
                 key={rec.id}
                 type="button"
-                onClick={() => handleQuickChip(rec.phone)}
-                className="text-xs px-3 py-1 rounded-full bg-emerald-50 hover:bg-emerald-100/80 text-emerald-800 border border-emerald-200 transition-all font-mono cursor-pointer font-medium"
+                onClick={(e) => handleQuickChip(e, rec.phone)}
+                className="text-xs px-3 py-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 transition-all font-mono cursor-pointer font-medium active:scale-95 flex items-center gap-1"
               >
-                {rec.phone} ({rec.name})
+                <span>{rec.phone}</span>
+                <span className="text-[10px] text-emerald-700 font-sans">({rec.name})</span>
               </button>
             ))}
           </div>
