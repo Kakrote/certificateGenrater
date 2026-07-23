@@ -320,7 +320,7 @@ export const AdminDashboard: React.FC = () => {
           </div>
 
           {/* Demo Hint Banner */}
-          <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-2xl p-3.5 text-left text-xs space-y-1">
+          {/* <div className="bg-indigo-500/10 border border-indigo-500/30 rounded-2xl p-3.5 text-left text-xs space-y-1">
             <p className="font-semibold text-indigo-300 flex items-center gap-1.5">
               <KeyRound className="w-4 h-4 text-indigo-400" /> Default Demo Credentials:
             </p>
@@ -328,7 +328,7 @@ export const AdminDashboard: React.FC = () => {
               <p>Username: <span className="text-indigo-400 font-bold">admin</span></p>
               <p>Password: <span className="text-indigo-400 font-bold">admin123</span></p>
             </div>
-          </div>
+          </div> */}
 
           {authError && (
             <motion.div
