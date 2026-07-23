@@ -28,16 +28,15 @@ import { motion, AnimatePresence } from "framer-motion";
 export const AdminDashboard: React.FC = () => {
   const { showToast } = useToast();
 
-  // Authentication State
+  // Authentication State (Default to false, check safely in useEffect)
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [authChecked, setAuthChecked] = useState(false);
   const [usernameInput, setUsernameInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState("");
 
-  // Data States
-  const [certificates, setCertificates] = useState<CertificateRecord[]>([]);
+  // Data States (Default to INITIAL_CERTIFICATES immediately so UI is never blank!)
+  const [certificates, setCertificates] = useState<CertificateRecord[]>(INITIAL_CERTIFICATES);
   const [totalLookups, setTotalLookups] = useState<number>(597);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -57,18 +56,27 @@ export const AdminDashboard: React.FC = () => {
   });
 
   const loadData = async () => {
-    const data = await fetchCertificatesFromApi();
-    setCertificates(data.certificates);
-    setTotalLookups(data.totalLookups);
+    try {
+      const data = await fetchCertificatesFromApi();
+      if (data && Array.isArray(data.certificates) && data.certificates.length > 0) {
+        setCertificates(data.certificates);
+        setTotalLookups(data.totalLookups);
+      }
+    } catch (e) {
+      console.warn("Failed to load DB data, using initial dataset", e);
+    }
   };
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const storedAuth = sessionStorage.getItem("certipulse_admin_auth");
-      if (storedAuth === "true") {
-        setIsAuthenticated(true);
+    try {
+      if (typeof window !== "undefined" && window.sessionStorage) {
+        const storedAuth = sessionStorage.getItem("certipulse_admin_auth");
+        if (storedAuth === "true") {
+          setIsAuthenticated(true);
+        }
       }
-      setAuthChecked(true);
+    } catch {
+      // Ignore sessionStorage restriction errors
     }
     loadData();
   }, []);
@@ -85,7 +93,13 @@ export const AdminDashboard: React.FC = () => {
       validPasswords.includes(passwordInput.trim())
     ) {
       setIsAuthenticated(true);
-      sessionStorage.setItem("certipulse_admin_auth", "true");
+      try {
+        if (typeof window !== "undefined" && window.sessionStorage) {
+          sessionStorage.setItem("certipulse_admin_auth", "true");
+        }
+      } catch {
+        // Fallback
+      }
       showToast("Access Granted", "Welcome to the Admin Control Panel.", "success");
       setUsernameInput("");
       setPasswordInput("");
@@ -97,7 +111,13 @@ export const AdminDashboard: React.FC = () => {
 
   const handleLogout = () => {
     setIsAuthenticated(false);
-    sessionStorage.removeItem("certipulse_admin_auth");
+    try {
+      if (typeof window !== "undefined" && window.sessionStorage) {
+        sessionStorage.removeItem("certipulse_admin_auth");
+      }
+    } catch {
+      // Fallback
+    }
     showToast("Logged Out", "Admin session ended securely.", "info");
   };
 
@@ -124,7 +144,7 @@ export const AdminDashboard: React.FC = () => {
       });
       const json = await res.json();
       if (json.success) {
-        showToast("Certificate Created!", `Saved ${json.certificate.name} to SQLite Database.`, "success");
+        showToast("Certificate Created!", `Saved ${json.certificate.name} to Database.`, "success");
         setShowAddModal(false);
         setFormData({ name: "", phone: "", driveUrl: "", event: "", issueDate: new Date().toISOString().split("T")[0], details: "" });
         await loadData();
@@ -168,7 +188,7 @@ export const AdminDashboard: React.FC = () => {
       });
       const json = await res.json();
       if (json.success) {
-        showToast("Changes Saved", `Updated SQLite record for ${editingCert.name}`, "success");
+        showToast("Changes Saved", `Updated record for ${editingCert.name}`, "success");
         setEditingCert(null);
         await loadData();
         return;
@@ -195,7 +215,7 @@ export const AdminDashboard: React.FC = () => {
         });
         const json = await res.json();
         if (json.success) {
-          showToast("Record Deleted", `Removed certificate for ${name} from SQLite DB`, "info");
+          showToast("Record Deleted", `Removed certificate for ${name}`, "info");
           await loadData();
           return;
         }
@@ -233,11 +253,7 @@ export const AdminDashboard: React.FC = () => {
   const totalDownloads = certificates.reduce((acc, curr) => acc + (curr.downloads || 0), 0);
   const totalEvents = new Set(certificates.map((c) => c.event)).size;
 
-  if (!authChecked) {
-    return <div className="py-12 text-center text-slate-500">Verifying session security...</div>;
-  }
-
-  // Render Login Lock Screen if not authenticated
+  // Render Login Lock Screen if not authenticated (No blocking authChecked state!)
   if (!isAuthenticated) {
     return (
       <div className="w-full max-w-md mx-auto py-8 sm:py-16 space-y-6">
@@ -335,11 +351,11 @@ export const AdminDashboard: React.FC = () => {
           <div className="flex items-center gap-2">
             <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Admin Console</h1>
             <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
-              SQLite Connected
+              System Active
             </span>
           </div>
           <p className="text-sm text-slate-500 mt-1">
-            Manage recipient records in SQLite DB and track download analytics.
+            Manage recipient records in database and track download analytics.
           </p>
         </div>
 
@@ -371,7 +387,7 @@ export const AdminDashboard: React.FC = () => {
             <Award className="w-5 h-5 text-emerald-600" />
           </div>
           <p className="text-2xl font-extrabold text-slate-900 mt-2">{certificates.length}</p>
-          <span className="text-[11px] text-emerald-700 font-medium mt-1 block">Active in SQLite DB</span>
+          <span className="text-[11px] text-emerald-700 font-medium mt-1 block">Active Records</span>
         </div>
 
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-md shadow-emerald-950/5">
@@ -443,7 +459,7 @@ export const AdminDashboard: React.FC = () => {
               {filteredCertificates.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="p-8 text-center text-slate-400">
-                    No certificates found in SQLite DB. Click "Add Single Certificate" to create one.
+                    No certificates found. Click "Add Single Certificate" to create one.
                   </td>
                 </tr>
               ) : (
