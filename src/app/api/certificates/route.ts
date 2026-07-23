@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
-import { cleanPhoneNumber } from "@/lib/drive";
+import { db, initializeDatabaseIfNeeded } from "@/lib/db";
 import testingData from "@/lib/testingData.json";
 import { CertificateRecord } from "@/lib/types";
 
@@ -12,54 +11,38 @@ function findInDataset(phoneQuery: string): CertificateRecord | null {
   if (!digitsQuery) return null;
   const coreTarget = digitsQuery.length >= 10 ? digitsQuery.slice(-10) : digitsQuery;
 
+  const dataset = testingData as CertificateRecord[];
+
+  // 1. Priority 1: Exact 10-digit subscriber match
+  let match = dataset.find((rec) => {
+    const recDigits = (rec.phone || "").replace(/\D/g, "");
+    if (!recDigits) return false;
+    const recCore = recDigits.length >= 10 ? recDigits.slice(-10) : recDigits;
+    return recCore === coreTarget;
+  });
+
+  if (match) return match;
+
+  // 2. Priority 2: Contains match
   return (
-    (testingData as CertificateRecord[]).find((rec) => {
+    dataset.find((rec) => {
       const recDigits = (rec.phone || "").replace(/\D/g, "");
       if (!recDigits) return false;
       const recCore = recDigits.length >= 10 ? recDigits.slice(-10) : recDigits;
 
       return (
-        recDigits.includes(coreTarget) ||
-        recCore.includes(coreTarget) ||
-        coreTarget.includes(recCore) ||
+        recDigits.endsWith(coreTarget) ||
+        digitsQuery.endsWith(recCore) ||
         recDigits.includes(digitsQuery) ||
-        digitsQuery.includes(recDigits)
+        (digitsQuery.length >= 6 && recDigits.includes(coreTarget))
       );
     }) || null
   );
 }
 
-// Seed testingData.json records into SQLite database
-async function ensureTestingData() {
-  try {
-    const count = await db.certificate.count();
-    if (count <= 10) {
-      await db.certificate.deleteMany({});
-      for (const cert of testingData as CertificateRecord[]) {
-        await db.certificate.create({
-          data: {
-            id: cert.id,
-            certificateId: cert.certificateId,
-            name: cert.name,
-            phone: cert.phone,
-            cleanPhone: cert.phone.replace(/\D/g, ""),
-            driveUrl: cert.driveUrl,
-            event: cert.event,
-            issueDate: cert.issueDate,
-            details: cert.details || "",
-            downloads: cert.downloads || 0,
-          },
-        });
-      }
-    }
-  } catch (e) {
-    console.warn("ensureTestingData DB warning:", e);
-  }
-}
-
 export async function GET(request: Request) {
   try {
-    await ensureTestingData();
+    await initializeDatabaseIfNeeded();
     const { searchParams } = new URL(request.url);
     const phone = searchParams.get("phone");
 
@@ -91,7 +74,14 @@ export async function GET(request: Request) {
         });
 
         if (certificates.length > 0) {
-          return NextResponse.json({ success: true, certificate: certificates[0] });
+          // Sort to prioritize exact subscriber core match
+          const bestMatch =
+            certificates.find((c) => {
+              const cClean = c.cleanPhone || c.phone.replace(/\D/g, "");
+              return cClean.endsWith(coreTarget) || cClean === digitsQuery;
+            }) || certificates[0];
+
+          return NextResponse.json({ success: true, certificate: bestMatch });
         }
       } catch (dbErr) {
         console.warn("DB search fallback to JSON:", dbErr);
@@ -144,7 +134,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    await ensureTestingData();
+    await initializeDatabaseIfNeeded();
     const body = await request.json();
 
     if (body.action === "incrementDownload" && body.id) {
@@ -157,6 +147,36 @@ export async function POST(request: Request) {
       } catch {
         return NextResponse.json({ success: true });
       }
+    }
+
+    // Support Bulk Array Creation (e.g. Excel upload)
+    if (Array.isArray(body?.records) && body.records.length > 0) {
+      const createdRecords = [];
+      for (const item of body.records) {
+        if (!item.name || !item.phone) continue;
+        const digits = item.phone.replace(/\D/g, "");
+        const certId = item.certificateId || `CERT-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+
+        try {
+          const rec = await db.certificate.create({
+            data: {
+              certificateId: certId,
+              name: item.name,
+              phone: item.phone,
+              cleanPhone: digits,
+              driveUrl: item.driveUrl || "https://uuassets.uudoon.in/Documents/AIIW2025PC/WPC-1.jpg",
+              event: item.event || "General Certificate",
+              issueDate: item.issueDate || new Date().toISOString().split("T")[0],
+              details: item.details || "",
+              downloads: 0,
+            },
+          });
+          createdRecords.push(rec);
+        } catch {
+          // Ignore duplicate certificateId errors
+        }
+      }
+      return NextResponse.json({ success: true, count: createdRecords.length, records: createdRecords });
     }
 
     if (body.name && body.phone) {
@@ -182,7 +202,7 @@ export async function POST(request: Request) {
           success: true,
           certificate: { ...created, details: created.details || undefined, createdAt: created.createdAt.toISOString() },
         });
-      } catch (dbErr) {
+      } catch {
         return NextResponse.json({
           success: true,
           certificate: {
@@ -210,6 +230,7 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    await initializeDatabaseIfNeeded();
     const body = await request.json();
     if (!body.id) {
       return NextResponse.json({ success: false, error: "Missing id" }, { status: 400 });
@@ -239,6 +260,7 @@ export async function PUT(request: Request) {
 
 export async function DELETE(request: Request) {
   try {
+    await initializeDatabaseIfNeeded();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
 
@@ -256,3 +278,4 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
   }
 }
+

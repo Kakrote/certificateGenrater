@@ -22,11 +22,17 @@ import {
   EyeOff,
   LogOut,
   ShieldAlert,
+  Upload,
+  Download,
+  FileSpreadsheet,
 } from "lucide-react";
+import { parseExcelOrCsvFile, generateSampleExcelFile, exportCertificatesToExcel } from "@/lib/excel";
 import { motion, AnimatePresence } from "framer-motion";
 
 export const AdminDashboard: React.FC = () => {
   const { showToast } = useToast();
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -81,6 +87,51 @@ export const AdminDashboard: React.FC = () => {
     }
     loadData();
   }, []);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    showToast("Processing File", `Parsing ${file.name}...`, "info");
+
+    try {
+      const parsedRecords = await parseExcelOrCsvFile(file);
+      if (parsedRecords.length === 0) {
+        showToast("Upload Warning", "No valid records extracted from file.", "error");
+        setIsUploading(false);
+        return;
+      }
+
+      try {
+        const res = await fetch("/api/certificates", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ records: parsedRecords }),
+        });
+        const json = await res.json();
+        if (json.success) {
+          showToast("Batch Import Complete!", `Imported ${json.count || parsedRecords.length} records into database.`, "success");
+          await loadData();
+          setIsUploading(false);
+          if (fileInputRef.current) fileInputRef.current.value = "";
+          return;
+        }
+      } catch {
+        // Fallback to local state merge
+      }
+
+      const merged = [...parsedRecords, ...certificates];
+      setCertificates(merged);
+      saveStoredCertificates(merged);
+      showToast("Batch Import Complete!", `Added ${parsedRecords.length} records to local state.`, "success");
+    } catch (err: any) {
+      showToast("Excel Error", err?.message || "Failed to process Excel file", "error");
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -357,18 +408,54 @@ export const AdminDashboard: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileUpload}
+            accept=".xlsx,.xls,.csv"
+            className="hidden"
+          />
+
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isUploading}
+            className="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+            title="Import recipients from Excel or CSV file"
+          >
+            <Upload className="w-3.5 h-3.5 text-emerald-600" />
+            {isUploading ? "Importing..." : "Upload Excel Sheet"}
+          </button>
+
+          <button
+            onClick={() => exportCertificatesToExcel(certificates)}
+            className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+            title="Export all database records to Excel"
+          >
+            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+            Export Excel
+          </button>
+
+          <button
+            onClick={generateSampleExcelFile}
+            className="px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200 text-xs font-medium flex items-center gap-1 transition-all cursor-pointer"
+            title="Download sample Excel template format"
+          >
+            <Download className="w-3 h-3 text-slate-400" />
+            Sample Format
+          </button>
+
           <button
             onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold text-xs shadow-md shadow-emerald-600/20 flex items-center gap-2 transition-all cursor-pointer"
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold text-xs shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            Add Single Certificate
+            Add Single
           </button>
 
           <button
             onClick={handleLogout}
-            className="px-3.5 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+            className="px-3 py-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer"
             title="Sign out of Admin session"
           >
             <LogOut className="w-3.5 h-3.5" />

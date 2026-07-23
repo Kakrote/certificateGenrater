@@ -64,6 +64,8 @@ export const CertificatePreview: React.FC<Props> = ({ certificate, onDownload })
     try {
       const a = document.createElement("a");
       a.href = driveInfo.downloadUrl;
+      const cleanName = certificate.name.replace(/[^a-zA-Z0-9]/g, "_");
+      a.setAttribute("download", `${cleanName}_Certificate`);
       a.target = "_blank";
       a.rel = "noreferrer";
       document.body.appendChild(a);

@@ -89,38 +89,39 @@ export function findCertificateByPhone(phoneQuery: string, records: CertificateR
   // Extract core subscriber digits (last 10 digits)
   const coreTarget = digitsQuery.length >= 10 ? digitsQuery.slice(-10) : digitsQuery;
 
-  // Search provided records list
-  const match = records.find((rec) => {
-    const recDigits = (rec.phone || "").replace(/\D/g, "");
-    if (!recDigits) return false;
-    const recCore = recDigits.length >= 10 ? recDigits.slice(-10) : recDigits;
+  const searchInList = (list: CertificateRecord[]): CertificateRecord | null => {
+    // 1. Priority 1: Exact subscriber 10-digit match
+    let match = list.find((rec) => {
+      const recDigits = (rec.phone || "").replace(/\D/g, "");
+      if (!recDigits) return false;
+      const recCore = recDigits.length >= 10 ? recDigits.slice(-10) : recDigits;
+      return recCore === coreTarget;
+    });
 
-    return (
-      recDigits.includes(coreTarget) ||
-      recCore.includes(coreTarget) ||
-      coreTarget.includes(recCore) ||
-      recDigits.includes(digitsQuery) ||
-      digitsQuery.includes(recDigits)
-    );
-  });
+    if (match) return match;
 
-  if (match) return match;
-
-  // Fallback search in embedded INITIAL_CERTIFICATES if provided list yielded no match
-  if (records !== INITIAL_CERTIFICATES) {
-    return INITIAL_CERTIFICATES.find((rec) => {
+    // 2. Priority 2: Substring/contains match for valid query lengths
+    match = list.find((rec) => {
       const recDigits = (rec.phone || "").replace(/\D/g, "");
       if (!recDigits) return false;
       const recCore = recDigits.length >= 10 ? recDigits.slice(-10) : recDigits;
 
       return (
-        recDigits.includes(coreTarget) ||
-        recCore.includes(coreTarget) ||
-        coreTarget.includes(recCore) ||
+        recDigits.endsWith(coreTarget) ||
+        digitsQuery.endsWith(recCore) ||
         recDigits.includes(digitsQuery) ||
-        digitsQuery.includes(recDigits)
+        (digitsQuery.length >= 6 && recDigits.includes(coreTarget))
       );
-    }) || null;
+    });
+
+    return match || null;
+  };
+
+  const primaryMatch = searchInList(records);
+  if (primaryMatch) return primaryMatch;
+
+  if (records !== INITIAL_CERTIFICATES) {
+    return searchInList(INITIAL_CERTIFICATES);
   }
 
   return null;

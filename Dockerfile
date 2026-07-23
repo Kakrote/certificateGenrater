@@ -37,8 +37,10 @@ COPY . .
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-# Generate Prisma Client
+# Generate Prisma Client & initialize pre-seeded database
 RUN npx prisma generate
+RUN npx prisma db push
+RUN node prisma/seed.js
 
 # Build Next.js standalone application
 RUN npm run build
@@ -72,5 +74,5 @@ RUN mkdir -p /app/prisma && chmod -R 777 /app/prisma
 
 EXPOSE 3000
 
-# Push database schema, seed testing.xlsx records, and start server
-CMD ["sh", "-c", "npx prisma db push --skip-generate && node prisma/seed.js && node server.js"]
+# Start server directly
+CMD ["node", "server.js"]
