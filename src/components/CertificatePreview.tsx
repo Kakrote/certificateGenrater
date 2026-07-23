@@ -38,15 +38,40 @@ export const CertificatePreview: React.FC<Props> = ({ certificate, onDownload })
   const [isFullscreen, setIsFullscreen] = useState(false);
 
   const handleCopyLink = () => {
-    const link = `${window.location.origin}?phone=${encodeURIComponent(certificate.phone)}`;
-    navigator.clipboard.writeText(link);
-    showToast("Link Copied!", "Shareable certificate verification link copied to clipboard.", "success");
+    try {
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const link = `${origin}?phone=${encodeURIComponent(certificate.phone)}`;
+
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(link);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = link;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
+      showToast("Link Copied!", "Shareable certificate verification link copied to clipboard.", "success");
+    } catch {
+      showToast("Share Link", certificate.driveUrl, "info");
+    }
   };
 
   const handleDownloadOriginal = () => {
     if (onDownload) onDownload();
     showToast("Downloading", "Opening original certificate document...", "info");
-    window.open(driveInfo.downloadUrl, "_blank");
+    try {
+      const a = document.createElement("a");
+      a.href = driveInfo.downloadUrl;
+      a.target = "_blank";
+      a.rel = "noreferrer";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch {
+      window.open(driveInfo.downloadUrl, "_blank");
+    }
   };
 
   return (
@@ -74,6 +99,7 @@ export const CertificatePreview: React.FC<Props> = ({ certificate, onDownload })
         <div className="flex flex-wrap items-center gap-2">
           <div className="bg-slate-100 p-1 rounded-xl border border-slate-200 flex items-center">
             <button
+              type="button"
               onClick={() => setActiveTab("original")}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === "original"
@@ -85,6 +111,7 @@ export const CertificatePreview: React.FC<Props> = ({ certificate, onDownload })
               Original Certificate
             </button>
             <button
+              type="button"
               onClick={() => setActiveTab("rendered")}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === "rendered"
@@ -98,6 +125,7 @@ export const CertificatePreview: React.FC<Props> = ({ certificate, onDownload })
           </div>
 
           <button
+            type="button"
             onClick={handleCopyLink}
             className="p-2.5 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 transition-all text-xs font-medium flex items-center gap-1.5 cursor-pointer"
             title="Copy verification link"
@@ -107,6 +135,7 @@ export const CertificatePreview: React.FC<Props> = ({ certificate, onDownload })
           </button>
 
           <button
+            type="button"
             onClick={handleDownloadOriginal}
             className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold text-sm shadow-lg shadow-emerald-600/20 transition-all flex items-center gap-2 cursor-pointer"
           >
@@ -133,6 +162,7 @@ export const CertificatePreview: React.FC<Props> = ({ certificate, onDownload })
                 {/* Floating Fullscreen / Open Original Action Overlay */}
                 <div className="absolute top-3 right-3 flex items-center gap-2 opacity-90 group-hover:opacity-100 transition-opacity">
                   <button
+                    type="button"
                     onClick={() => setIsFullscreen(true)}
                     className="p-2 rounded-lg bg-white/90 hover:bg-white text-xs text-slate-800 border border-slate-200 backdrop-blur-md flex items-center gap-1.5 shadow-md cursor-pointer font-medium"
                     title="Fullscreen Preview"
@@ -285,9 +315,9 @@ export const CertificatePreview: React.FC<Props> = ({ certificate, onDownload })
             onClick={() => setIsFullscreen(false)}
           >
             <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
+              initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
+              exit={{ opacity: 0, scale: 0.95 }}
               className="relative max-w-6xl max-h-[90vh]"
             >
               <img
