@@ -1,0 +1,30 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Certificate {
+  id            String   @id @default(uuid())
+  certificateId String   @unique
+  name          String
+  phone         String
+  cleanPhone    String
+  driveUrl      String
+  event         String
+  issueDate     String
+  details       String?
+  downloads     Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([cleanPhone])
+  @@index([phone])
+}
+
+model SystemStat {
+  key   String @id
+  value Int    @default(0)
+}

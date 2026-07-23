@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  certipulse:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: certipulse_app
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=file:./prisma/dev.db
+    volumes:
+      # Mount local prisma directory to preserve dev.db across container restarts
+      - ./prisma:/app/prisma
