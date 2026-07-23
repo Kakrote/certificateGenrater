@@ -504,13 +504,13 @@ export const AdminDashboard: React.FC = () => {
           <div className="flex flex-col items-center justify-center text-center space-y-2">
             <FileSpreadsheet className="w-8 h-8 text-slate-500 group-hover:text-indigo-400 transition-colors" />
             <p className="text-xs text-slate-300">
-              <span className="font-semibold text-indigo-400">Click to upload</span> or drag and drop Excel file
+              <span className="font-semibold text-indigo-400">Click to upload .xlsx file</span> or drag and drop Excel spreadsheet
             </p>
-            <p className="text-[11px] text-slate-500">Supports columns: Full Name, Phone Number, Certificate Drive Link, Event Name</p>
+            <p className="text-[11px] text-slate-500">Supports .xlsx, .xls, .csv with columns: Full Name, Phone Number, Drive Link</p>
           </div>
           <input
             type="file"
-            accept=".xlsx, .xls, .csv"
+            accept=".xlsx, .xls, .csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel, text/csv"
             className="hidden"
             onChange={handleFileUpload}
             disabled={isUploading}

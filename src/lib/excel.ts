@@ -14,46 +14,73 @@ export function parseExcelOrCsvFile(file: File): Promise<CertificateRecord[]> {
         const rawRows = XLSX.utils.sheet_to_json<ExcelUploadRow>(worksheet, { defval: "" });
 
         const records: CertificateRecord[] = rawRows.map((row, index) => {
+          // Flexible key matching for Recipient Name
           const name =
             row["Full Name"] ||
             row["Name"] ||
             row["name"] ||
             row["Recipient Name"] ||
+            row["Student Name"] ||
+            row["Participant Name"] ||
+            row["User Name"] ||
+            row["Person Name"] ||
             "Unnamed Recipient";
 
+          // Flexible key matching for Phone Number
           const rawPhone =
             row["Phone Number"] ||
             row["Phone"] ||
             row["phone"] ||
             row["Mobile Number"] ||
+            row["Mobile"] ||
+            row["Contact Number"] ||
+            row["Contact"] ||
+            row["Phone No"] ||
+            row["Mobile No"] ||
+            row["Cell"] ||
             "";
 
+          // Flexible key matching for Drive Link
           const driveUrl =
             row["Certificate Drive Link"] ||
             row["Drive Link"] ||
             row["Drive Url"] ||
             row["driveUrl"] ||
             row["Url"] ||
+            row["Link"] ||
+            row["Certificate Link"] ||
+            row["Drive"] ||
+            row["Google Drive Link"] ||
             "https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/view";
 
+          // Flexible key matching for Event Name
           const event =
             row["Event Name"] ||
             row["Course Name"] ||
             row["Event"] ||
             row["event"] ||
+            row["Course"] ||
+            row["Program"] ||
+            row["Workshop"] ||
+            row["Title"] ||
             "Certificate of Excellence";
 
+          // Flexible key matching for Issue Date
           const issueDate =
             row["Issue Date"] ||
             row["Date"] ||
             row["issueDate"] ||
+            row["Date of Issue"] ||
             new Date().toISOString().split("T")[0];
 
+          // Flexible key matching for Details
           const details =
             row["Details"] ||
             row["details"] ||
             row["Grade"] ||
             row["Description"] ||
+            row["Remarks"] ||
+            row["Note"] ||
             "Successfully fulfilled all program requirements.";
 
           const randomSuffix = Math.floor(1000 + Math.random() * 9000);
@@ -74,7 +101,7 @@ export function parseExcelOrCsvFile(file: File): Promise<CertificateRecord[]> {
 
         // Filter out empty rows without name or phone
         const validRecords = records.filter(
-          (r) => r.name.length > 0 && r.phone.length > 0
+          (r) => r.name.length > 0 && r.phone.length > 0 && r.name !== "Unnamed Recipient"
         );
 
         resolve(validRecords);
