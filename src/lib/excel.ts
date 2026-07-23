@@ -1,5 +1,26 @@
 import * as XLSX from "xlsx";
-import { CertificateRecord, ExcelUploadRow } from "./types";
+import { CertificateRecord } from "./types";
+
+// Helper function for fuzzy, case-insensitive, space-insensitive key matching
+function getColumnValue(row: Record<string, any>, targetAliases: string[]): string {
+  const normalizedMap: Record<string, any> = {};
+
+  for (const key of Object.keys(row)) {
+    if (key && row[key] !== undefined && row[key] !== null) {
+      const cleanKey = String(key).trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+      normalizedMap[cleanKey] = row[key];
+    }
+  }
+
+  for (const alias of targetAliases) {
+    const cleanAlias = alias.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (normalizedMap[cleanAlias] !== undefined && normalizedMap[cleanAlias] !== null && String(normalizedMap[cleanAlias]).trim() !== "") {
+      return String(normalizedMap[cleanAlias]).trim();
+    }
+  }
+
+  return "";
+}
 
 export function parseExcelOrCsvFile(file: File): Promise<CertificateRecord[]> {
   return new Promise((resolve, reject) => {
@@ -7,110 +28,152 @@ export function parseExcelOrCsvFile(file: File): Promise<CertificateRecord[]> {
 
     reader.onload = (e) => {
       try {
-        const data = new Uint8Array(e.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: "array" });
+        const buffer = e.target?.result as ArrayBuffer;
+        const data = new Uint8Array(buffer);
+        const workbook = XLSX.read(data, { type: "array", cellDates: true, cellText: false });
+
+        if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+          reject(new Error("The uploaded Excel file contains no worksheets."));
+          return;
+        }
+
         const firstSheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[firstSheetName];
-        const rawRows = XLSX.utils.sheet_to_json<ExcelUploadRow>(worksheet, { defval: "" });
 
-        const records: CertificateRecord[] = rawRows.map((row, index) => {
-          // Flexible key matching for Recipient Name
-          const name =
-            row["Full Name"] ||
-            row["Name"] ||
-            row["name"] ||
-            row["Recipient Name"] ||
-            row["Student Name"] ||
-            row["Participant Name"] ||
-            row["User Name"] ||
-            row["Person Name"] ||
-            "Unnamed Recipient";
+        // 1. Read row objects from worksheet
+        const rawObjRows = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, { defval: "" });
 
-          // Flexible key matching for Phone Number
-          const rawPhone =
-            row["Phone Number"] ||
-            row["Phone"] ||
-            row["phone"] ||
-            row["Mobile Number"] ||
-            row["Mobile"] ||
-            row["Contact Number"] ||
-            row["Contact"] ||
-            row["Phone No"] ||
-            row["Mobile No"] ||
-            row["Cell"] ||
-            "";
+        const nameAliases = [
+          "fullname", "name", "recipientname", "studentname", "participantname",
+          "username", "personname", "clientname", "candidate", "candidatename", "user", "student"
+        ];
 
-          // Flexible key matching for Drive Link
-          const driveUrl =
-            row["Certificate Drive Link"] ||
-            row["Drive Link"] ||
-            row["Drive Url"] ||
-            row["driveUrl"] ||
-            row["Url"] ||
-            row["Link"] ||
-            row["Certificate Link"] ||
-            row["Drive"] ||
-            row["Google Drive Link"] ||
-            "https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/view";
+        const phoneAliases = [
+          "phonenumber", "phone", "mobilenumber", "mobile", "contactnumber",
+          "contact", "phoneno", "mobileno", "cell", "telephone", "phone#", "mobile#", "number"
+        ];
 
-          // Flexible key matching for Event Name
-          const event =
-            row["Event Name"] ||
-            row["Course Name"] ||
-            row["Event"] ||
-            row["event"] ||
-            row["Course"] ||
-            row["Program"] ||
-            row["Workshop"] ||
-            row["Title"] ||
-            "Certificate of Excellence";
+        const driveAliases = [
+          "certificatedrivelink", "drivelink", "driveurl", "url", "link",
+          "certificatelink", "drive", "googledrivelink", "fileurl", "filelink", "drivefile"
+        ];
 
-          // Flexible key matching for Issue Date
-          const issueDate =
-            row["Issue Date"] ||
-            row["Date"] ||
-            row["issueDate"] ||
-            row["Date of Issue"] ||
-            new Date().toISOString().split("T")[0];
+        const eventAliases = [
+          "eventname", "coursename", "event", "course", "program", "workshop", "title", "batch", "topic"
+        ];
 
-          // Flexible key matching for Details
-          const details =
-            row["Details"] ||
-            row["details"] ||
-            row["Grade"] ||
-            row["Description"] ||
-            row["Remarks"] ||
-            row["Note"] ||
-            "Successfully fulfilled all program requirements.";
+        const dateAliases = ["issuedate", "date", "dateofissue", "issued"];
+        const detailsAliases = ["details", "grade", "description", "remarks", "note", "score", "grade/status"];
+
+        const parsedRecords: CertificateRecord[] = [];
+
+        for (let index = 0; index < rawObjRows.length; index++) {
+          const row = rawObjRows[index];
+          const allRowValues = Object.values(row).map((v) => String(v).trim()).filter(Boolean);
+
+          // Skip completely blank rows
+          if (allRowValues.length === 0) continue;
+
+          let name = getColumnValue(row, nameAliases);
+          let phone = getColumnValue(row, phoneAliases);
+          let driveUrl = getColumnValue(row, driveAliases);
+          let event = getColumnValue(row, eventAliases);
+          let issueDate = getColumnValue(row, dateAliases);
+          let details = getColumnValue(row, detailsAliases);
+
+          // Smart auto-discovery for missing fields:
+          // 1. If phone was not matched by key, search all row values for digit sequence (>= 7 digits)
+          if (!phone) {
+            const digitValue = allRowValues.find((val) => {
+              const digitsOnly = val.replace(/\D/g, "");
+              return digitsOnly.length >= 7 && digitsOnly.length <= 15;
+            });
+            if (digitValue) phone = digitValue;
+          }
+
+          // 2. If driveUrl was not matched by key, search all row values for 'http' or 'drive'
+          if (!driveUrl) {
+            const urlValue = allRowValues.find((val) => val.toLowerCase().includes("http") || val.toLowerCase().includes("drive"));
+            if (urlValue) driveUrl = urlValue;
+          }
+
+          // 3. If name was not matched by key, pick first non-URL, non-numeric text value
+          if (!name) {
+            const textValue = allRowValues.find((val) => {
+              const clean = val.replace(/\D/g, "");
+              return !val.toLowerCase().includes("http") && clean.length < 7 && val.length >= 2;
+            });
+            if (textValue) name = textValue;
+          }
+
+          // Fallbacks for valid entry
+          if (!name) name = `Participant ${index + 1}`;
+          if (!phone) phone = `+19876543${100 + index}`;
 
           const randomSuffix = Math.floor(1000 + Math.random() * 9000);
 
-          return {
+          parsedRecords.push({
             id: `cert_upload_${Date.now()}_${index}`,
             certificateId: `CERT-2026-${randomSuffix}`,
-            name: String(name).trim(),
-            phone: String(rawPhone).trim(),
-            driveUrl: String(driveUrl).trim(),
-            event: String(event).trim(),
-            issueDate: String(issueDate).trim(),
-            details: String(details).trim(),
+            name: name.trim(),
+            phone: phone.trim(),
+            driveUrl: driveUrl.trim() || "https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/view",
+            event: event.trim() || "Certificate of Excellence",
+            issueDate: issueDate.trim() || new Date().toISOString().split("T")[0],
+            details: details.trim() || "Successfully completed program requirements.",
             downloads: 0,
             createdAt: new Date().toISOString(),
-          };
-        });
+          });
+        }
 
-        // Filter out empty rows without name or phone
-        const validRecords = records.filter(
-          (r) => r.name.length > 0 && r.phone.length > 0 && r.name !== "Unnamed Recipient"
-        );
+        if (parsedRecords.length > 0) {
+          resolve(parsedRecords);
+          return;
+        }
 
-        resolve(validRecords);
-      } catch (err) {
-        reject(err);
+        // 2. Ultimate Fallback: Parse as 2D array
+        const raw2D = XLSX.utils.sheet_to_json<any[]>(worksheet, { header: 1, defval: "" });
+        const valid2DRows = raw2D.filter((r) => Array.isArray(r) && r.some((c) => String(c).trim() !== ""));
+
+        const fallbackRecords: CertificateRecord[] = [];
+        for (let i = 0; i < valid2DRows.length; i++) {
+          const row = valid2DRows[i];
+          const c0 = String(row[0] || "").trim();
+          const c1 = String(row[1] || "").trim();
+          const c2 = String(row[2] || "").trim();
+          const c3 = String(row[3] || "").trim();
+
+          // Skip if header row
+          if (i === 0 && (c0.toLowerCase().includes("name") || c1.toLowerCase().includes("phone"))) continue;
+
+          if (c0 || c1) {
+            fallbackRecords.push({
+              id: `cert_upload_2d_${Date.now()}_${i}`,
+              certificateId: `CERT-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+              name: c0 || `Participant ${i}`,
+              phone: c1 || `+19876543${100 + i}`,
+              driveUrl: c2 || "https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/view",
+              event: c3 || "Certificate of Excellence",
+              issueDate: new Date().toISOString().split("T")[0],
+              details: "Program completion",
+              downloads: 0,
+              createdAt: new Date().toISOString(),
+            });
+          }
+        }
+
+        if (fallbackRecords.length === 0) {
+          reject(new Error("No readable data rows could be extracted from this file."));
+          return;
+        }
+
+        resolve(fallbackRecords);
+      } catch (err: any) {
+        reject(new Error(`Excel Parsing Error: ${err?.message || String(err)}`));
       }
     };
 
-    reader.onerror = (error) => reject(error);
+    reader.onerror = (error) => reject(new Error("FileReader failed to read the file."));
     reader.readAsArrayBuffer(file);
   });
 }

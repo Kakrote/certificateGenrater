@@ -1,14 +1,16 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { cleanPhoneNumber } from "@/lib/drive";
-import { INITIAL_CERTIFICATES } from "@/lib/store";
+import testingData from "@/lib/testingData.json";
 import { CertificateRecord } from "@/lib/types";
 
-// Seed initial certificates if DB is empty
-async function ensureSeedData() {
+// Seed testingData.json records into SQLite database
+async function ensureTestingData() {
   const count = await db.certificate.count();
-  if (count === 0) {
-    for (const cert of INITIAL_CERTIFICATES) {
+  // If database is empty or has old demo count (<= 10), re-seed with 597 testing.xlsx records
+  if (count <= 10) {
+    await db.certificate.deleteMany({});
+    for (const cert of testingData as CertificateRecord[]) {
       await db.certificate.create({
         data: {
           id: cert.id,
@@ -29,7 +31,7 @@ async function ensureSeedData() {
 
 export async function GET(request: Request) {
   try {
-    await ensureSeedData();
+    await ensureTestingData();
     const { searchParams } = new URL(request.url);
     const phone = searchParams.get("phone");
 
@@ -43,7 +45,7 @@ export async function GET(request: Request) {
       await db.systemStat.upsert({
         where: { key: "lookupCount" },
         update: { value: { increment: 1 } },
-        create: { key: "lookupCount", value: 143 },
+        create: { key: "lookupCount", value: 597 },
       });
 
       // Search in SQLite DB using clean phone or raw phone
@@ -76,7 +78,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       success: true,
       certificates: allCerts,
-      totalLookups: lookupStat?.value || 142,
+      totalLookups: lookupStat?.value || 597,
     });
   } catch (error) {
     console.error("GET /api/certificates error:", error);
@@ -86,7 +88,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    await ensureSeedData();
+    await ensureTestingData();
     const body = await request.json();
 
     // Action: Increment download count
@@ -96,37 +98,6 @@ export async function POST(request: Request) {
         data: { downloads: { increment: 1 } },
       });
       return NextResponse.json({ success: true, certificate: updated });
-    }
-
-    // Bulk Add / Excel Upload
-    if (Array.isArray(body.certificates)) {
-      const createdItems: CertificateRecord[] = [];
-
-      for (const item of body.certificates) {
-        const clean = cleanPhoneNumber(item.phone || "");
-        const certId = item.certificateId || `CERT-2026-${Math.floor(1000 + Math.random() * 9000)}`;
-
-        const created = await db.certificate.create({
-          data: {
-            certificateId: certId,
-            name: item.name,
-            phone: item.phone,
-            cleanPhone: clean,
-            driveUrl: item.driveUrl || "https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/view",
-            event: item.event || "General Certificate",
-            issueDate: item.issueDate || new Date().toISOString().split("T")[0],
-            details: item.details || "",
-            downloads: 0,
-          },
-        });
-        createdItems.push({
-          ...created,
-          details: created.details || undefined,
-          createdAt: created.createdAt.toISOString(),
-        });
-      }
-
-      return NextResponse.json({ success: true, count: createdItems.length, certificates: createdItems });
     }
 
     // Single Certificate Add
@@ -140,7 +111,7 @@ export async function POST(request: Request) {
           name: body.name,
           phone: body.phone,
           cleanPhone: clean,
-          driveUrl: body.driveUrl || "https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/view",
+          driveUrl: body.driveUrl || "https://uuassets.uudoon.in/Documents/AIIW2025PC/WPC-1.jpg",
           event: body.event || "General Certificate",
           issueDate: body.issueDate || new Date().toISOString().split("T")[0],
           details: body.details || "",

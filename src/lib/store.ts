@@ -1,70 +1,10 @@
 import { CertificateRecord } from "./types";
 import { cleanPhoneNumber } from "./drive";
+import testingData from "./testingData.json";
 
-export const INITIAL_CERTIFICATES: CertificateRecord[] = [
-  {
-    id: "cert_1",
-    certificateId: "CERT-2026-8941",
-    name: "Alex Morgan",
-    phone: "+19876543210",
-    driveUrl: "https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/view?usp=sharing",
-    event: "Full-Stack Web Engineering Masterclass 2026",
-    issueDate: "2026-06-15",
-    details: "Grade: Distinction (98/100). Completed advanced Next.js & UI/UX Design.",
-    downloads: 14,
-    createdAt: "2026-06-15T10:00:00.000Z",
-  },
-  {
-    id: "cert_2",
-    certificateId: "CERT-2026-9022",
-    name: "Sophia Chen",
-    phone: "+15550192834",
-    driveUrl: "https://drive.google.com/file/d/1v8T-vWp3mH9zZ1Xn3lXn3lXn3lXn3lXn/view",
-    event: "AI & Machine Learning Innovation Hackathon",
-    issueDate: "2026-07-01",
-    details: "1st Place Winner - Best Agentic AI Solution",
-    downloads: 28,
-    createdAt: "2026-07-01T14:30:00.000Z",
-  },
-  {
-    id: "cert_3",
-    certificateId: "CERT-2026-7731",
-    name: "Rahul Sharma",
-    phone: "+919876543210",
-    driveUrl: "https://drive.google.com/file/d/1u2v3w4x5y6z7a8b9c0d1e2f3g4h5i6j/view",
-    event: "Global Cloud Architecture Summit 2026",
-    issueDate: "2026-05-20",
-    details: "Certified Cloud Solutions Specialist",
-    downloads: 8,
-    createdAt: "2026-05-20T09:15:00.000Z",
-  },
-  {
-    id: "cert_4",
-    certificateId: "CERT-2026-5120",
-    name: "Emily Watson",
-    phone: "+12125550199",
-    driveUrl: "https://drive.google.com/file/d/1xYz90123456789abcdefghijklmn/view",
-    event: "UX/UI Design & Micro-Interactions Workshop",
-    issueDate: "2026-07-10",
-    details: "Completed 40 Hours of UI Animation & Systems Design",
-    downloads: 5,
-    createdAt: "2026-07-10T11:00:00.000Z",
-  },
-  {
-    id: "cert_5",
-    certificateId: "CERT-2026-3409",
-    name: "David Miller",
-    phone: "+14155550148",
-    driveUrl: "https://drive.google.com/file/d/19876543210abcdefghijklmnop/view",
-    event: "Cyber Security & Systems Integrity Bootcamp",
-    issueDate: "2026-04-12",
-    details: "Passed Practical Penetration Testing & Defense Exam",
-    downloads: 19,
-    createdAt: "2026-04-12T16:00:00.000Z",
-  }
-];
+export const INITIAL_CERTIFICATES: CertificateRecord[] = testingData as CertificateRecord[];
 
-const LOCAL_STORAGE_KEY = "certipulse_certificates_v1";
+const LOCAL_STORAGE_KEY = "certipulse_certificates_v2";
 const LOOKUPS_KEY = "certipulse_total_lookups_v1";
 
 export function getStoredCertificates(): CertificateRecord[] {
@@ -97,10 +37,10 @@ export async function fetchCertificatesFromApi(): Promise<{ certificates: Certif
     const json = await res.json();
     if (json.success && Array.isArray(json.certificates)) {
       saveStoredCertificates(json.certificates);
-      return { certificates: json.certificates, totalLookups: json.totalLookups || 142 };
+      return { certificates: json.certificates, totalLookups: json.totalLookups || 597 };
     }
   } catch (e) {
-    console.warn("Falling back to local storage", e);
+    console.warn("Falling back to stored data", e);
   }
   return { certificates: getStoredCertificates(), totalLookups: getLookupCount() };
 }
@@ -117,7 +57,7 @@ export async function findCertificateByPhoneApi(phoneQuery: string): Promise<Cer
       }
     }
   } catch {
-    // Fallback to local storage
+    // Fallback
   }
 
   const currentList = getStoredCertificates();
@@ -162,22 +102,22 @@ export function incrementCertificateDownload(id: string): CertificateRecord[] {
 }
 
 export function recordLookupEvent(): number {
-  if (typeof window === "undefined") return 142;
+  if (typeof window === "undefined") return 597;
   try {
-    const val = parseInt(localStorage.getItem(LOOKUPS_KEY) || "142", 10);
+    const val = parseInt(localStorage.getItem(LOOKUPS_KEY) || "597", 10);
     const nextVal = val + 1;
     localStorage.setItem(LOOKUPS_KEY, nextVal.toString());
     return nextVal;
   } catch {
-    return 143;
+    return 598;
   }
 }
 
 export function getLookupCount(): number {
-  if (typeof window === "undefined") return 142;
+  if (typeof window === "undefined") return 597;
   try {
-    return parseInt(localStorage.getItem(LOOKUPS_KEY) || "142", 10);
+    return parseInt(localStorage.getItem(LOOKUPS_KEY) || "597", 10);
   } catch {
-    return 142;
+    return 597;
   }
 }
