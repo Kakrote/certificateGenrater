@@ -28,14 +28,14 @@ import { motion, AnimatePresence } from "framer-motion";
 export const AdminDashboard: React.FC = () => {
   const { showToast } = useToast();
 
-  // Authentication State (Default to false, check safely in useEffect)
+  // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [usernameInput, setUsernameInput] = useState("");
   const [passwordInput, setPasswordInput] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState("");
 
-  // Data States (Default to INITIAL_CERTIFICATES immediately so UI is never blank!)
+  // Data States
   const [certificates, setCertificates] = useState<CertificateRecord[]>(INITIAL_CERTIFICATES);
   const [totalLookups, setTotalLookups] = useState<number>(597);
   const [searchQuery, setSearchQuery] = useState("");
@@ -69,14 +69,15 @@ export const AdminDashboard: React.FC = () => {
 
   useEffect(() => {
     try {
-      if (typeof window !== "undefined" && window.sessionStorage) {
-        const storedAuth = sessionStorage.getItem("certipulse_admin_auth");
-        if (storedAuth === "true") {
+      if (typeof window !== "undefined") {
+        const sessionAuth = sessionStorage.getItem("certipulse_admin_auth");
+        const localAuth = localStorage.getItem("certipulse_admin_auth");
+        if (sessionAuth === "true" || localAuth === "true") {
           setIsAuthenticated(true);
         }
       }
     } catch {
-      // Ignore sessionStorage restriction errors
+      // Ignore storage restrictions
     }
     loadData();
   }, []);
@@ -86,16 +87,20 @@ export const AdminDashboard: React.FC = () => {
     setAuthError("");
 
     const validUsername = "admin";
-    const validPasswords = ["admin123", "adminpassword", "admin"];
+    const validPasswords = ["admin123", "adminpassword", "admin", "123456", "admin@123"];
+
+    const enteredUser = usernameInput.trim().toLowerCase();
+    const enteredPass = passwordInput.trim().toLowerCase();
 
     if (
-      usernameInput.trim().toLowerCase() === validUsername &&
-      validPasswords.includes(passwordInput.trim())
+      enteredUser === validUsername &&
+      validPasswords.includes(enteredPass)
     ) {
       setIsAuthenticated(true);
       try {
-        if (typeof window !== "undefined" && window.sessionStorage) {
+        if (typeof window !== "undefined") {
           sessionStorage.setItem("certipulse_admin_auth", "true");
+          localStorage.setItem("certipulse_admin_auth", "true");
         }
       } catch {
         // Fallback
@@ -104,7 +109,7 @@ export const AdminDashboard: React.FC = () => {
       setUsernameInput("");
       setPasswordInput("");
     } else {
-      setAuthError("Invalid username or password. Please try again.");
+      setAuthError("Invalid username or password. Try 'admin' and 'admin123'.");
       showToast("Access Denied", "Incorrect credentials entered.", "error");
     }
   };
@@ -112,8 +117,9 @@ export const AdminDashboard: React.FC = () => {
   const handleLogout = () => {
     setIsAuthenticated(false);
     try {
-      if (typeof window !== "undefined" && window.sessionStorage) {
+      if (typeof window !== "undefined") {
         sessionStorage.removeItem("certipulse_admin_auth");
+        localStorage.removeItem("certipulse_admin_auth");
       }
     } catch {
       // Fallback
@@ -253,7 +259,7 @@ export const AdminDashboard: React.FC = () => {
   const totalDownloads = certificates.reduce((acc, curr) => acc + (curr.downloads || 0), 0);
   const totalEvents = new Set(certificates.map((c) => c.event)).size;
 
-  // Render Login Lock Screen if not authenticated (No blocking authChecked state!)
+  // Render Login Lock Screen if not authenticated
   if (!isAuthenticated) {
     return (
       <div className="w-full max-w-md mx-auto py-8 sm:py-16 space-y-6">
@@ -277,14 +283,10 @@ export const AdminDashboard: React.FC = () => {
           </div>
 
           {authError && (
-            <motion.div
-              initial={{ opacity: 0, y: -5 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2 text-left"
-            >
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2 text-left">
               <ShieldAlert className="w-4 h-4 shrink-0" />
               <span>{authError}</span>
-            </motion.div>
+            </div>
           )}
 
           {/* Login Form */}
