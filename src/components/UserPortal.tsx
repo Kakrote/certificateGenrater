@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import confetti from "canvas-confetti";
 import { CertificateRecord } from "@/lib/types";
 import {
   fetchCertificatesFromApi,
@@ -31,8 +30,10 @@ export const UserPortal: React.FC = () => {
 
   useEffect(() => {
     fetchCertificatesFromApi().then((data) => {
-      setRecords(data.certificates);
-    });
+      if (data && Array.isArray(data.certificates)) {
+        setRecords(data.certificates);
+      }
+    }).catch(() => {});
   }, []);
 
   // Check URL parameters for direct phone search (e.g. ?phone=7018321825)
@@ -47,8 +48,10 @@ export const UserPortal: React.FC = () => {
     }
   }, []);
 
-  const triggerConfetti = () => {
+  const triggerConfetti = async () => {
     try {
+      const confettiModule = await import("canvas-confetti");
+      const confetti = confettiModule.default || confettiModule;
       confetti({
         particleCount: 85,
         spread: 75,
@@ -56,7 +59,7 @@ export const UserPortal: React.FC = () => {
         colors: ["#059669", "#10b981", "#34d399", "#047857"],
       });
     } catch {
-      // Fallback
+      // Fallback if confetti is blocked
     }
   };
 
@@ -190,7 +193,12 @@ export const UserPortal: React.FC = () => {
           {/* Quick Demo Chips */}
           <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
             <span className="text-xs text-slate-500 font-medium">Quick Test Numbers:</span>
-            {records.slice(0, 4).map((rec) => (
+            {(records.length > 0 ? records : [
+              { id: "1", phone: "7018321825", name: "MS. GULSHAN ATTRI" },
+              { id: "2", phone: "9459411726", name: "MS. JAGRITY SHARMA" },
+              { id: "3", phone: "8126486834", name: "MR. RISHI DEV NAUTIYAL" },
+              { id: "4", phone: "9837063262", name: "ER. RAJA JOSHI" },
+            ]).slice(0, 4).map((rec) => (
               <button
                 key={rec.id}
                 type="button"

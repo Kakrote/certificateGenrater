@@ -1,18 +1,12 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Navbar } from "@/components/Navbar";
 import { UserPortal } from "@/components/UserPortal";
 import { ToastProvider } from "@/components/Toast";
 import { ShieldCheck } from "lucide-react";
 
 export default function Home() {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
   return (
     <ToastProvider>
       <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans selection:bg-emerald-500 selection:text-white relative overflow-x-hidden">
@@ -26,13 +20,7 @@ export default function Home() {
 
         {/* Main User Portal Content Area */}
         <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 z-10">
-          {mounted ? (
-            <UserPortal />
-          ) : (
-            <div className="w-full max-w-4xl mx-auto py-12 text-center text-slate-500 font-medium text-sm">
-              Loading Certificate Portal...
-            </div>
-          )}
+          <UserPortal />
         </main>
 
         {/* Public Footer */}
