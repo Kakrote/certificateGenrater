@@ -116,7 +116,7 @@ export const UserPortal: React.FC = () => {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto space-y-8">
+    <div className="w-full max-w-4xl mx-auto space-y-4">
       {/* Top Banner Image - himlogo.png above main content */}
       <div className="flex justify-center items-center pt-2 sm:pt-4">
         <img
@@ -127,7 +127,7 @@ export const UserPortal: React.FC = () => {
       </div>
 
       {/* Hero Section */}
-      <div className="text-center space-y-4 pt-2">
+      <div className="text-center space-y-4 pt-0">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold shadow-xs">
           <ShieldCheck className="w-4 h-4 text-emerald-600" />
           <span>Official Certificate Verification Portal</span>
