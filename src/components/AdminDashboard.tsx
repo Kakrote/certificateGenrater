@@ -314,8 +314,8 @@ export const AdminDashboard: React.FC = () => {
   if (!isAuthenticated) {
     return (
       <div className="w-full max-w-md mx-auto py-8 sm:py-16 space-y-6">
-        <div className="bg-white border border-slate-200 p-6 sm:p-8 rounded-3xl backdrop-blur-xl shadow-xl shadow-emerald-950/5 space-y-6 text-center relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="bg-white border border-slate-200 p-6 sm:p-8 rounded-3xl backdrop-blur-xl shadow-xl shadow-blue-950/5 space-y-6 text-center relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-40 h-40 bg-orange-500/10 rounded-full blur-3xl pointer-events-none" />
 
           {/* Header Brand Logo */}
           <div className="h-16 flex items-center justify-center p-2 rounded-2xl bg-white border border-slate-200/80 mx-auto max-w-[200px] shadow-xs">
@@ -352,7 +352,7 @@ export const AdminDashboard: React.FC = () => {
                 value={usernameInput}
                 onChange={(e) => setUsernameInput(e.target.value)}
                 placeholder="Enter username (e.g. admin)"
-                className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:bg-white text-sm transition-all"
+                className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:bg-white text-sm transition-all"
               />
             </div>
 
@@ -367,7 +367,7 @@ export const AdminDashboard: React.FC = () => {
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
                   placeholder="Enter password (e.g. admin123)"
-                  className="w-full pl-4 pr-10 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:bg-white text-sm transition-all"
+                  className="w-full pl-4 pr-10 py-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:bg-white text-sm transition-all"
                 />
                 <button
                   type="button"
@@ -381,7 +381,7 @@ export const AdminDashboard: React.FC = () => {
 
             <button
               type="submit"
-              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-sm shadow-lg shadow-emerald-600/25 transition-all flex items-center justify-center gap-2 mt-2 cursor-pointer"
+              className="w-full py-3.5 rounded-xl bg-gradient-to-r from-orange-600 via-amber-600 to-blue-600 hover:from-orange-700 hover:to-blue-700 text-white font-bold text-sm shadow-lg shadow-orange-600/25 transition-all flex items-center justify-center gap-2 mt-2 cursor-pointer"
             >
               <Lock className="w-4 h-4" />
               Sign In to Admin Dashboard
@@ -399,7 +399,7 @@ export const AdminDashboard: React.FC = () => {
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Admin Console</h1>
-            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+            <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-orange-50 text-orange-800 border border-orange-200">
               System Active
             </span>
           </div>
@@ -420,10 +420,10 @@ export const AdminDashboard: React.FC = () => {
           <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
-            className="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
+            className="px-3.5 py-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-900 border border-orange-200 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
             title="Import recipients from Excel or CSV file"
           >
-            <Upload className="w-3.5 h-3.5 text-emerald-600" />
+            <Upload className="w-3.5 h-3.5 text-orange-600" />
             {isUploading ? "Importing..." : "Upload Excel Sheet"}
           </button>
 
@@ -432,7 +432,7 @@ export const AdminDashboard: React.FC = () => {
             className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
             title="Export all database records to Excel"
           >
-            <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+            <FileSpreadsheet className="w-3.5 h-3.5 text-blue-600" />
             Export Excel
           </button>
 
@@ -447,7 +447,7 @@ export const AdminDashboard: React.FC = () => {
 
           <button
             onClick={() => setShowAddModal(true)}
-            className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold text-xs shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
+            className="px-4 py-2 rounded-xl bg-gradient-to-r from-orange-600 via-amber-600 to-blue-600 hover:from-orange-700 hover:to-blue-700 text-white font-semibold text-xs shadow-md shadow-orange-600/20 flex items-center gap-1.5 transition-all cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             Add Single
@@ -466,16 +466,16 @@ export const AdminDashboard: React.FC = () => {
 
       {/* Analytics Overview Bar */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-md shadow-emerald-950/5">
+        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-md shadow-blue-950/5">
           <div className="flex items-center justify-between text-slate-500">
             <span className="text-xs font-semibold uppercase tracking-wider">Total Issued</span>
-            <Award className="w-5 h-5 text-emerald-600" />
+            <Award className="w-5 h-5 text-orange-600" />
           </div>
           <p className="text-2xl font-extrabold text-slate-900 mt-2">{certificates.length}</p>
-          <span className="text-[11px] text-emerald-700 font-medium mt-1 block">Active Records</span>
+          <span className="text-[11px] text-orange-700 font-medium mt-1 block">Active Records</span>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-md shadow-emerald-950/5">
+        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-md shadow-blue-950/5">
           <div className="flex items-center justify-between text-slate-500">
             <span className="text-xs font-semibold uppercase tracking-wider">Lookup Requests</span>
             <Users className="w-5 h-5 text-teal-600" />
@@ -484,7 +484,7 @@ export const AdminDashboard: React.FC = () => {
           <span className="text-[11px] text-slate-500 mt-1 block">User Searches</span>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-md shadow-emerald-950/5">
+        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-md shadow-blue-950/5">
           <div className="flex items-center justify-between text-slate-500">
             <span className="text-xs font-semibold uppercase tracking-wider">Total Downloads</span>
             <BarChart3 className="w-5 h-5 text-indigo-600" />
@@ -493,7 +493,7 @@ export const AdminDashboard: React.FC = () => {
           <span className="text-[11px] text-indigo-700 mt-1 block">Files Exported</span>
         </div>
 
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-md shadow-emerald-950/5">
+        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-md shadow-blue-950/5">
           <div className="flex items-center justify-between text-slate-500">
             <span className="text-xs font-semibold uppercase tracking-wider">Active Events</span>
             <FileText className="w-5 h-5 text-amber-600" />
@@ -504,7 +504,7 @@ export const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Main Records Table */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl shadow-emerald-950/5 space-y-4">
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl shadow-blue-950/5 space-y-4">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
           <div className="relative flex-1 max-w-md">
             <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
@@ -513,7 +513,7 @@ export const AdminDashboard: React.FC = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by Name, Phone, Event, or Certificate ID..."
-              className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-emerald-500 focus:bg-white"
+              className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-orange-500 focus:bg-white"
             />
           </div>
 
@@ -549,30 +549,30 @@ export const AdminDashboard: React.FC = () => {
                 </tr>
               ) : (
                 filteredCertificates.map((cert) => (
-                  <tr key={cert.id} className="hover:bg-emerald-50/40 transition-colors">
+                  <tr key={cert.id} className="hover:bg-orange-50/40 transition-colors">
                     <td className="p-3.5 font-mono text-[11px] text-slate-500">{cert.certificateId}</td>
                     <td className="p-3.5 font-semibold text-slate-900">{cert.name}</td>
                     <td className="p-3.5 font-mono text-slate-700">{cert.phone}</td>
-                    <td className="p-3.5 text-emerald-800 font-medium max-w-xs truncate">{cert.event}</td>
+                    <td className="p-3.5 text-blue-900 font-medium max-w-xs truncate">{cert.event}</td>
                     <td className="p-3.5 max-w-xs truncate">
                       <a
                         href={cert.driveUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-slate-500 hover:text-emerald-600 font-mono text-[11px] flex items-center gap-1"
+                        className="text-slate-500 hover:text-orange-600 font-mono text-[11px] flex items-center gap-1"
                       >
                         <ExternalLink className="w-3 h-3 shrink-0" />
                         <span className="truncate">{cert.driveUrl}</span>
                       </a>
                     </td>
-                    <td className="p-3.5 text-center font-semibold text-emerald-700">
+                    <td className="p-3.5 text-center font-semibold text-orange-700">
                       {cert.downloads || 0}
                     </td>
                     <td className="p-3.5 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => setPreviewCert(cert)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-emerald-700 hover:bg-emerald-50 transition-colors cursor-pointer"
+                          className="p-1.5 rounded-lg text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer"
                           title="Preview Certificate"
                         >
                           <Eye className="w-4 h-4" />
@@ -630,7 +630,7 @@ export const AdminDashboard: React.FC = () => {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="e.g. John Doe"
-                    className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:border-emerald-500 focus:bg-white"
+                    className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:border-orange-500 focus:bg-white"
                   />
                 </div>
 
@@ -642,7 +642,7 @@ export const AdminDashboard: React.FC = () => {
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="e.g. 7018321825"
-                    className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:border-emerald-500 focus:bg-white font-mono"
+                    className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:border-orange-500 focus:bg-white font-mono"
                   />
                 </div>
 
@@ -653,7 +653,7 @@ export const AdminDashboard: React.FC = () => {
                     value={formData.driveUrl}
                     onChange={(e) => setFormData({ ...formData, driveUrl: e.target.value })}
                     placeholder="https://uuassets.uudoon.in/Documents/..."
-                    className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:border-emerald-500 focus:bg-white font-mono"
+                    className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:border-orange-500 focus:bg-white font-mono"
                   />
                 </div>
 
@@ -665,7 +665,7 @@ export const AdminDashboard: React.FC = () => {
                       value={formData.event}
                       onChange={(e) => setFormData({ ...formData, event: e.target.value })}
                       placeholder="e.g. Uttaranchal University"
-                      className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:border-emerald-500 focus:bg-white"
+                      className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:border-orange-500 focus:bg-white"
                     />
                   </div>
                   <div>
@@ -674,7 +674,7 @@ export const AdminDashboard: React.FC = () => {
                       type="date"
                       value={formData.issueDate}
                       onChange={(e) => setFormData({ ...formData, issueDate: e.target.value })}
-                      className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:border-emerald-500 focus:bg-white"
+                      className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:border-orange-500 focus:bg-white"
                     />
                   </div>
                 </div>
@@ -686,7 +686,7 @@ export const AdminDashboard: React.FC = () => {
                     value={formData.details}
                     onChange={(e) => setFormData({ ...formData, details: e.target.value })}
                     placeholder="e.g. Assistant Professor"
-                    className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:border-emerald-500 focus:bg-white"
+                    className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:border-orange-500 focus:bg-white"
                   />
                 </div>
 
@@ -700,7 +700,7 @@ export const AdminDashboard: React.FC = () => {
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-md shadow-emerald-600/20 cursor-pointer"
+                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-semibold shadow-md shadow-orange-600/20 cursor-pointer"
                   >
                     Create Certificate
                   </button>
@@ -800,7 +800,7 @@ export const AdminDashboard: React.FC = () => {
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-semibold shadow-md shadow-emerald-600/20 cursor-pointer"
+                    className="px-5 py-2 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-semibold shadow-md shadow-orange-600/20 cursor-pointer"
                   >
                     Save Changes
                   </button>

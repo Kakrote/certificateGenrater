@@ -57,7 +57,7 @@ export const UserPortal: React.FC = () => {
         particleCount: 85,
         spread: 75,
         origin: { y: 0.6 },
-        colors: ["#059669", "#10b981", "#34d399", "#047857"],
+        colors: ["#ea580c", "#2563eb", "#f59e0b", "#1d4ed8"],
       });
     } catch {
       // Fallback if confetti is blocked
@@ -128,13 +128,13 @@ export const UserPortal: React.FC = () => {
 
       {/* Hero Section */}
       <div className="text-center space-y-4 pt-0">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold shadow-xs">
-          <ShieldCheck className="w-4 h-4 text-emerald-600" />
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-50 border border-orange-200 text-orange-800 text-xs font-semibold shadow-xs">
+          <ShieldCheck className="w-4 h-4 text-blue-600" />
           <span>Official Certificate Verification Portal</span>
         </div>
 
         <h1 className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
-          Retrieve Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700">Verified Certificate</span>
+          Retrieve Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-600 via-amber-600 to-blue-600">Verified Certificate</span>
         </h1>
 
         <p className="text-slate-600 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
@@ -143,8 +143,8 @@ export const UserPortal: React.FC = () => {
       </div>
 
       {/* Search Bar Card */}
-      <div className="bg-white border border-slate-200/90 p-4 sm:p-6 rounded-3xl shadow-xl shadow-emerald-950/5 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-72 h-72 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="bg-white border border-slate-200/90 p-4 sm:p-6 rounded-3xl shadow-xl shadow-blue-950/5 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-72 h-72 bg-orange-500/5 rounded-full blur-3xl pointer-events-none" />
 
         <form
           onSubmit={(e) => {
@@ -156,21 +156,21 @@ export const UserPortal: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-stretch gap-3">
             <div className="relative flex-1">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                <PhoneCall className="w-5 h-5 text-emerald-600" />
+                <PhoneCall className="w-5 h-5 text-blue-600" />
               </div>
               <input
                 type="text"
                 value={phoneNumber}
                 onChange={(e) => setPhoneNumber(e.target.value)}
                 placeholder="Enter your phone number (e.g. 7018321825)"
-                className="w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 text-base sm:text-lg transition-all"
+                className="w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:bg-white focus:ring-2 focus:ring-orange-500/20 text-base sm:text-lg transition-all"
               />
             </div>
 
             <button
               type="submit"
               disabled={searching}
-              className="px-8 py-4 rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-base shadow-lg shadow-emerald-600/25 transition-all flex items-center justify-center gap-2 disabled:opacity-70 shrink-0 cursor-pointer"
+              className="px-8 py-4 rounded-2xl bg-gradient-to-r from-orange-600 via-amber-600 to-blue-600 hover:from-orange-700 hover:to-blue-700 text-white font-bold text-base shadow-lg shadow-orange-600/25 transition-all flex items-center justify-center gap-2 disabled:opacity-70 shrink-0 cursor-pointer"
             >
               {searching ? (
                 <>
@@ -194,10 +194,10 @@ export const UserPortal: React.FC = () => {
                 key={rec.id}
                 type="button"
                 onClick={(e) => handleQuickChip(e, rec.phone)}
-                className="text-xs px-3 py-1.5 rounded-full bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 transition-all font-mono cursor-pointer font-medium active:scale-95 flex items-center gap-1"
+                className="text-xs px-3 py-1.5 rounded-full bg-orange-50 hover:bg-orange-100 text-orange-900 border border-orange-200 transition-all font-mono cursor-pointer font-medium active:scale-95 flex items-center gap-1"
               >
                 <span>{rec.phone}</span>
-                <span className="text-[10px] text-emerald-700 font-sans">({rec.name})</span>
+                <span className="text-[10px] text-blue-700 font-sans">({rec.name})</span>
               </button>
             ))}
           </div>
@@ -214,7 +214,7 @@ export const UserPortal: React.FC = () => {
             exit={{ opacity: 0 }}
             className="text-center py-12 space-y-4"
           >
-            <div className="w-16 h-16 rounded-full border-4 border-emerald-200 border-t-emerald-600 animate-spin mx-auto" />
+            <div className="w-16 h-16 rounded-full border-4 border-orange-200 border-t-orange-600 animate-spin mx-auto" />
             <p className="text-slate-600 font-medium text-sm">Searching registry for matching phone record...</p>
           </motion.div>
         )}
@@ -227,12 +227,12 @@ export const UserPortal: React.FC = () => {
             exit={{ opacity: 0, y: -10 }}
             className="space-y-6"
           >
-            <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center justify-between">
+            <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <CheckCircle2 className="w-6 h-6 text-emerald-600 shrink-0" />
+                <CheckCircle2 className="w-6 h-6 text-blue-600 shrink-0" />
                 <div>
-                  <h4 className="text-sm font-semibold text-emerald-900">Certificate Found & Verified</h4>
-                  <p className="text-xs text-emerald-700">Matched record for {foundCertificate.name}</p>
+                  <h4 className="text-sm font-semibold text-blue-950">Certificate Found & Verified</h4>
+                  <p className="text-xs text-blue-700">Matched record for {foundCertificate.name}</p>
                 </div>
               </div>
             </div>

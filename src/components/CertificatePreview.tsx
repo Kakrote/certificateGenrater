@@ -77,13 +77,13 @@ export const CertificatePreview: React.FC<Props> = ({ certificate, onDownload })
   };
 
   return (
-    <div className="w-full bg-white border border-slate-200/90 rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xl shadow-emerald-950/5 space-y-6">
+    <div className="w-full bg-white border border-slate-200/90 rounded-3xl p-4 sm:p-6 lg:p-8 shadow-xl shadow-blue-950/5 space-y-6">
       {/* Header Info & Actions */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-6">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-              <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-orange-50 text-orange-800 border border-orange-200">
+              <CheckCircle className="w-3.5 h-3.5 text-orange-600" />
               Verified Authentic
             </span>
             <span className="text-xs font-mono text-slate-600 bg-slate-100 px-2.5 py-1 rounded-md border border-slate-200">
@@ -91,8 +91,8 @@ export const CertificatePreview: React.FC<Props> = ({ certificate, onDownload })
             </span>
           </div>
           <h2 className="text-2xl font-bold text-slate-900 tracking-tight">{certificate.name}</h2>
-          <p className="text-sm text-emerald-700 flex items-center gap-2 mt-1 font-medium">
-            <Award className="w-4 h-4 text-emerald-600" />
+          <p className="text-sm text-blue-700 flex items-center gap-2 mt-1 font-medium">
+            <Award className="w-4 h-4 text-orange-600" />
             {certificate.event}
           </p>
         </div>
@@ -105,7 +105,7 @@ export const CertificatePreview: React.FC<Props> = ({ certificate, onDownload })
               onClick={() => setActiveTab("original")}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === "original"
-                  ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20"
+                  ? "bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-md shadow-orange-600/20"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -117,7 +117,7 @@ export const CertificatePreview: React.FC<Props> = ({ certificate, onDownload })
               onClick={() => setActiveTab("rendered")}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === "rendered"
-                  ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20"
+                  ? "bg-gradient-to-r from-orange-600 to-blue-600 text-white shadow-md shadow-orange-600/20"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -132,14 +132,14 @@ export const CertificatePreview: React.FC<Props> = ({ certificate, onDownload })
             className="p-2.5 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 transition-all text-xs font-medium flex items-center gap-1.5 cursor-pointer"
             title="Copy verification link"
           >
-            <Share2 className="w-4 h-4 text-emerald-600" />
+            <Share2 className="w-4 h-4 text-blue-600" />
             <span className="hidden sm:inline">Share</span>
           </button>
 
           <button
             type="button"
             onClick={handleDownloadOriginal}
-            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 via-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-semibold text-sm shadow-lg shadow-emerald-600/20 transition-all flex items-center gap-2 cursor-pointer"
+            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-orange-600 via-amber-600 to-blue-600 hover:from-orange-700 hover:to-blue-700 text-white font-semibold text-sm shadow-lg shadow-orange-600/20 transition-all flex items-center gap-2 cursor-pointer"
           >
             <Download className="w-4 h-4" />
             Download Original
@@ -169,14 +169,14 @@ export const CertificatePreview: React.FC<Props> = ({ certificate, onDownload })
                     className="p-2 rounded-lg bg-white/90 hover:bg-white text-xs text-slate-800 border border-slate-200 backdrop-blur-md flex items-center gap-1.5 shadow-md cursor-pointer font-medium"
                     title="Fullscreen Preview"
                   >
-                    <Maximize2 className="w-3.5 h-3.5 text-emerald-600" />
+                    <Maximize2 className="w-3.5 h-3.5 text-orange-600" />
                     <span>Expand</span>
                   </button>
                   <a
                     href={certificate.driveUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="px-3 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-xs text-white border border-emerald-500 backdrop-blur-md flex items-center gap-1.5 shadow-md font-medium"
+                    className="px-3 py-2 rounded-lg bg-orange-600 hover:bg-orange-700 text-xs text-white border border-orange-500 backdrop-blur-md flex items-center gap-1.5 shadow-md font-medium"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                     Open High-Res
@@ -197,7 +197,7 @@ export const CertificatePreview: React.FC<Props> = ({ certificate, onDownload })
                     href={driveInfo.directViewUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="px-3 py-1.5 rounded-lg bg-white/90 hover:bg-white text-xs text-emerald-700 border border-slate-200 backdrop-blur-md flex items-center gap-1.5 shadow-md font-medium"
+                    className="px-3 py-1.5 rounded-lg bg-white/90 hover:bg-white text-xs text-blue-700 border border-slate-200 backdrop-blur-md flex items-center gap-1.5 shadow-md font-medium"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                     Open in Drive
@@ -217,7 +217,7 @@ export const CertificatePreview: React.FC<Props> = ({ certificate, onDownload })
                     href={certificate.driveUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="px-3 py-2 rounded-lg bg-white/90 hover:bg-white text-xs text-emerald-700 border border-slate-200 backdrop-blur-md flex items-center gap-1.5 shadow-md font-medium"
+                    className="px-3 py-2 rounded-lg bg-white/90 hover:bg-white text-xs text-blue-700 border border-slate-200 backdrop-blur-md flex items-center gap-1.5 shadow-md font-medium"
                   >
                     <ExternalLink className="w-3.5 h-3.5" />
                     Open Original Link
@@ -231,13 +231,13 @@ export const CertificatePreview: React.FC<Props> = ({ certificate, onDownload })
                 <AlertCircle className="w-10 h-10 text-amber-500 mx-auto" />
                 <h4 className="text-slate-800 font-semibold">Image Load Notice</h4>
                 <p className="text-xs text-slate-500 max-w-md mx-auto">
-                  The original certificate file is located at <span className="font-mono text-emerald-700 font-semibold">{certificate.driveUrl}</span>.
+                  The original certificate file is located at <span className="font-mono text-blue-700 font-semibold">{certificate.driveUrl}</span>.
                 </p>
                 <a
                   href={certificate.driveUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-md"
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-semibold shadow-md"
                 >
                   <ExternalLink className="w-4 h-4" /> Open Certificate Document Directly
                 </a>
@@ -249,7 +249,7 @@ export const CertificatePreview: React.FC<Props> = ({ certificate, onDownload })
           <div className="w-full p-4 sm:p-8 flex justify-center print:p-0">
             <div
               id="digital-certificate-card"
-              className="w-full max-w-3xl aspect-[1.414/1] bg-gradient-to-br from-emerald-900 via-teal-900 to-emerald-950 border-4 border-amber-400/40 rounded-2xl p-6 sm:p-10 relative overflow-hidden shadow-2xl text-center flex flex-col justify-between select-none group text-white"
+              className="w-full max-w-3xl aspect-[1.414/1] bg-gradient-to-br from-slate-900 via-blue-950 to-orange-950 border-4 border-amber-400/40 rounded-2xl p-6 sm:p-10 relative overflow-hidden shadow-2xl text-center flex flex-col justify-between select-none group text-white"
             >
               <div className="absolute inset-2 border-2 border-dashed border-amber-400/20 rounded-xl pointer-events-none" />
               <div className="relative z-10 space-y-2">
@@ -257,7 +257,7 @@ export const CertificatePreview: React.FC<Props> = ({ certificate, onDownload })
                   <Award className="w-4 h-4 text-amber-400" />
                   Official Credential Details
                 </div>
-                <h3 className="text-xl sm:text-2xl font-serif text-emerald-100 tracking-wide font-medium mt-2">
+                <h3 className="text-xl sm:text-2xl font-serif text-blue-100 tracking-wide font-medium mt-2">
                   This Credential Record is Registered To
                 </h3>
               </div>
@@ -267,24 +267,24 @@ export const CertificatePreview: React.FC<Props> = ({ certificate, onDownload })
                   {certificate.name}
                 </h1>
                 <div className="w-48 h-0.5 mx-auto bg-gradient-to-r from-transparent via-amber-400/60 to-transparent my-3" />
-                <h2 className="text-lg sm:text-2xl font-bold text-emerald-200 mt-2 px-4">
+                <h2 className="text-lg sm:text-2xl font-bold text-orange-200 mt-2 px-4">
                   {certificate.event}
                 </h2>
                 {certificate.details && (
-                  <p className="text-xs sm:text-sm text-emerald-300/80 italic mt-2 max-w-lg mx-auto">
+                  <p className="text-xs sm:text-sm text-blue-200/90 italic mt-2 max-w-lg mx-auto">
                     "{certificate.details}"
                   </p>
                 )}
               </div>
 
-              <div className="relative z-10 flex items-end justify-between border-t border-emerald-800/80 pt-4 text-left">
+              <div className="relative z-10 flex items-end justify-between border-t border-blue-800/80 pt-4 text-left">
                 <div className="space-y-1">
-                  <p className="text-[10px] text-emerald-400 uppercase tracking-wider font-semibold">Issue Date</p>
-                  <p className="text-xs font-medium text-emerald-100 flex items-center gap-1.5">
+                  <p className="text-[10px] text-orange-300 uppercase tracking-wider font-semibold">Issue Date</p>
+                  <p className="text-xs font-medium text-blue-100 flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-amber-400" />
                     {certificate.issueDate}
                   </p>
-                  <p className="text-[10px] text-emerald-300 mt-2 font-mono">ID: {certificate.certificateId}</p>
+                  <p className="text-[10px] text-blue-300 mt-2 font-mono">ID: {certificate.certificateId}</p>
                 </div>
 
                 <div className="flex flex-col items-center justify-center">
@@ -297,11 +297,11 @@ export const CertificatePreview: React.FC<Props> = ({ certificate, onDownload })
                 </div>
 
                 <div className="text-right space-y-1">
-                  <p className="text-[10px] text-emerald-400 uppercase tracking-wider font-semibold">Authorized Authority</p>
-                  <div className="font-serif italic text-sm text-amber-300 font-semibold border-b border-emerald-700 pb-0.5">
+                  <p className="text-[10px] text-orange-300 uppercase tracking-wider font-semibold">Authorized Authority</p>
+                  <div className="font-serif italic text-sm text-amber-300 font-semibold border-b border-blue-700 pb-0.5">
                     Uttaranchal University
                   </div>
-                  <p className="text-[10px] text-emerald-300">Official Directorate</p>
+                  <p className="text-[10px] text-blue-300">Official Directorate</p>
                 </div>
               </div>
             </div>
@@ -335,24 +335,24 @@ export const CertificatePreview: React.FC<Props> = ({ certificate, onDownload })
 
       {/* Extra Details Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 text-xs">
-        <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-100 flex items-center gap-3">
-          <Phone className="w-4 h-4 text-emerald-600 shrink-0" />
+        <div className="p-3.5 rounded-xl bg-orange-50/70 border border-orange-100 flex items-center gap-3">
+          <Phone className="w-4 h-4 text-orange-600 shrink-0" />
           <div>
             <span className="text-slate-500 block text-[10px]">Registered Mobile</span>
             <span className="font-semibold text-slate-800">{certificate.phone}</span>
           </div>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-100 flex items-center gap-3">
-          <FileCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+        <div className="p-3.5 rounded-xl bg-blue-50/70 border border-blue-100 flex items-center gap-3">
+          <FileCheck className="w-4 h-4 text-blue-600 shrink-0" />
           <div>
             <span className="text-slate-500 block text-[10px]">Status</span>
-            <span className="font-semibold text-emerald-700 font-semibold">Verified & Authentic</span>
+            <span className="font-semibold text-blue-700">Verified & Authentic</span>
           </div>
         </div>
 
-        <div className="p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-100 flex items-center gap-3">
-          <Download className="w-4 h-4 text-emerald-600 shrink-0" />
+        <div className="p-3.5 rounded-xl bg-orange-50/70 border border-orange-100 flex items-center gap-3">
+          <Download className="w-4 h-4 text-orange-600 shrink-0" />
           <div>
             <span className="text-slate-400 block text-[10px]">Total Views / Downloads</span>
             <span className="font-semibold text-slate-800">{certificate.downloads || 0} times</span>

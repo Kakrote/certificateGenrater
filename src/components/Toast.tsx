@@ -48,20 +48,20 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
               className={`pointer-events-auto p-4 rounded-xl border shadow-xl backdrop-blur-md flex items-start gap-3 text-slate-900 ${
                 toast.type === "success"
-                  ? "bg-white/95 border-emerald-300 shadow-emerald-950/10"
+                  ? "bg-white/95 border-orange-300 shadow-orange-950/10"
                   : toast.type === "error"
                   ? "bg-white/95 border-rose-300 shadow-rose-950/10"
-                  : "bg-white/95 border-emerald-300 shadow-emerald-950/10"
+                  : "bg-white/95 border-blue-300 shadow-blue-950/10"
               }`}
             >
               {toast.type === "success" && (
-                <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                <CheckCircle2 className="w-5 h-5 text-orange-600 shrink-0 mt-0.5" />
               )}
               {toast.type === "error" && (
                 <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
               )}
               {toast.type === "info" && (
-                <Info className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
               )}
 
               <div className="flex-1 min-w-0">
