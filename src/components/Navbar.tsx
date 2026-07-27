@@ -12,7 +12,7 @@ export const Navbar: React.FC = () => {
         <Link href="/" className="flex items-center gap-3 group">
           <div className="h-12 flex items-center justify-center p-1 rounded-2xl bg-white border border-slate-200/80 shadow-xs group-hover:scale-105 transition-transform">
             <img
-              src="/logos/pragarti.png"
+              src="/logos/logo.jpeg"
               alt="CertiPulse Logo"
               className="h-10 w-auto object-contain"
             />

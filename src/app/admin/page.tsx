@@ -21,7 +21,7 @@ export default function AdminPage() {
             <div className="flex items-center gap-3">
               <div className="h-12 flex items-center justify-center p-1 rounded-2xl bg-white border border-slate-200/80 shadow-xs">
                 <img
-                  src="/logos/pragarti.png"
+                  src="/assests/himlogo.png"
                   alt="CertiPulse Logo"
                   className="h-10 w-auto object-contain"
                 />

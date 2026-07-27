@@ -320,7 +320,7 @@ export const AdminDashboard: React.FC = () => {
           {/* Header Brand Logo */}
           <div className="h-16 flex items-center justify-center p-2 rounded-2xl bg-white border border-slate-200/80 mx-auto max-w-[200px] shadow-xs">
             <img
-              src="/logos/pragarti.png"
+              src="/assests/himlogo.png"
               alt="CertiPulse Logo"
               className="h-12 w-auto object-contain"
             />

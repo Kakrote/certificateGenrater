@@ -117,8 +117,17 @@ export const UserPortal: React.FC = () => {
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-8">
+      {/* Top Banner Image - himlogo.png above main content */}
+      <div className="flex justify-center items-center pt-2 sm:pt-4">
+        <img
+          src="/assests/himlogo.png"
+          alt="HIM Logo"
+          className="max-h-28 sm:max-h-36 w-auto object-contain drop-shadow-md hover:scale-105 transition-transform duration-300"
+        />
+      </div>
+
       {/* Hero Section */}
-      <div className="text-center space-y-4 pt-4 sm:pt-8">
+      <div className="text-center space-y-4 pt-2">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold shadow-xs">
           <ShieldCheck className="w-4 h-4 text-emerald-600" />
           <span>Official Certificate Verification Portal</span>
@@ -260,6 +269,16 @@ export const UserPortal: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Bottom Sponsor Section */}
+      <div className="pt-8 pb-4 border-t border-slate-200/80 flex flex-col items-center justify-center gap-3">
+        <span className="text-xs uppercase tracking-widest text-slate-400 font-bold">Official Sponsor & Partner</span>
+        <img
+          src="/assests/Sponsor2.png"
+          alt="Sponsor Logo"
+          className="max-h-24 sm:max-h-32 w-auto object-contain drop-shadow-sm transition-transform hover:scale-105"
+        />
+      </div>
     </div>
   );
 };
