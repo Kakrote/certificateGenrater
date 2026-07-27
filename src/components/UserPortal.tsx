@@ -122,7 +122,7 @@ export const UserPortal: React.FC = () => {
         <img
           src="/assests/himlogo.png"
           alt="HIM Logo"
-          className="max-h-28 sm:max-h-66 w-auto object-contain drop-shadow-md hover:scale-105 transition-transform duration-300"
+          className="max-h-28 sm:max-h-80 w-auto object-contain drop-shadow-md hover:scale-105 transition-transform duration-300"
         />
       </div>
 
