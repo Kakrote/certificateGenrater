@@ -112,7 +112,7 @@ export const CertificatePreview: React.FC<Props> = ({ certificate, onDownload })
               <ImageIcon className="w-3.5 h-3.5" />
               Original Certificate
             </button>
-            <button
+            {/* <button
               type="button"
               onClick={() => setActiveTab("rendered")}
               className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
@@ -123,7 +123,7 @@ export const CertificatePreview: React.FC<Props> = ({ certificate, onDownload })
             >
               <Sparkles className="w-3.5 h-3.5" />
               Digital Badge View
-            </button>
+            </button> */}
           </div>
 
           <button

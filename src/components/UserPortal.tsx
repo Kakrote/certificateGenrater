@@ -130,7 +130,7 @@ export const UserPortal: React.FC = () => {
       <div className="text-center space-y-4 pt-0">
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-orange-50 border border-orange-200 text-orange-800 text-xs font-semibold shadow-xs">
           <ShieldCheck className="w-4 h-4 text-blue-600" />
-          <span>Official Certificate Verification Portal</span>
+          <span>Official Certificate Verification and Download Portal</span>
         </div>
 
         <h1 className="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
@@ -138,7 +138,7 @@ export const UserPortal: React.FC = () => {
         </h1>
 
         <p className="text-slate-600 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
-          Enter your registered phone number to preview and download your official credential instantly.
+          Enter your registered phone number to preview and download your 3rd All India IQAC Workshop 2026 certificate.
         </p>
       </div>
 
