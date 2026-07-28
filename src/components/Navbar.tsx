@@ -25,7 +25,7 @@ export const Navbar: React.FC = () => {
                 Official Portal
               </span>
             </div>
-            <p className="text-[11px] text-slate-500 font-medium">Credential Verification & Download</p>
+            <p className="text-[11px] text-slate-500 font-medium">Official Certificate Verification and Download Portal</p>
           </div>
         </Link>
 
