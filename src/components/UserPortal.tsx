@@ -10,6 +10,7 @@ import {
   INITIAL_CERTIFICATES,
 } from "@/lib/store";
 import { CertificatePreview } from "./CertificatePreview";
+import { CertificateCorrectionSection } from "./CertificateCorrectionSection";
 import { useToast } from "./Toast";
 import {
   Search,
@@ -269,6 +270,9 @@ export const UserPortal: React.FC = () => {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Certificate Correction Help Desk Section */}
+      <CertificateCorrectionSection />
 
       {/* Bottom Sponsor Section */}
       <div className="pt-8 pb-4 border-t border-slate-200/80 flex flex-col items-center justify-center gap-3">

@@ -14,7 +14,7 @@ export const Navbar: React.FC = () => {
             <img
               src="/logos/logo.jpeg"
               alt="CertiPulse Logo"
-              className="h-10 w-auto object-contain"
+              className="h-10 w-auto object-contain"   
             />
           </div>
 
