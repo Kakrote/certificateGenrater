@@ -2,6 +2,7 @@ export interface CertificateRecord {
   id: string;
   name: string;
   phone: string;
+  email?: string;
   driveUrl: string;
   event: string;
   issueDate: string;
@@ -20,6 +21,11 @@ export interface ExcelUploadRow {
   Phone?: string;
   "Phone Number"?: string;
   "Mobile Number"?: string;
+  email?: string;
+  Email?: string;
+  "Email Address"?: string;
+  "E-mail"?: string;
+  Mail?: string;
   driveUrl?: string;
   "Drive Link"?: string;
   "Certificate Link"?: string;

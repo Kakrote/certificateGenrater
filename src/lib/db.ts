@@ -32,6 +32,15 @@ if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db;
 // Self-healing DB initializer for production
 let isInitialized = false;
 
+export function extractEmailFromDetails(details?: string, explicitEmail?: string): string | null {
+  if (explicitEmail && explicitEmail.trim()) {
+    return explicitEmail.trim().toLowerCase();
+  }
+  if (!details) return null;
+  const emailMatch = details.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/);
+  return emailMatch ? emailMatch[0].toLowerCase() : null;
+}
+
 export async function initializeDatabaseIfNeeded() {
   if (isInitialized) return;
   try {
@@ -43,6 +52,7 @@ export async function initializeDatabaseIfNeeded() {
         "name" TEXT NOT NULL,
         "phone" TEXT NOT NULL,
         "cleanPhone" TEXT NOT NULL,
+        "email" TEXT,
         "driveUrl" TEXT NOT NULL,
         "event" TEXT NOT NULL,
         "issueDate" TEXT NOT NULL,
@@ -52,6 +62,12 @@ export async function initializeDatabaseIfNeeded() {
         "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
       );
     `);
+
+    try {
+      await db.$executeRawUnsafe(`ALTER TABLE "Certificate" ADD COLUMN "email" TEXT;`);
+    } catch {
+      // Ignore if email column already exists
+    }
 
     await db.$executeRawUnsafe(`
       CREATE TABLE IF NOT EXISTS "SystemStat" (
@@ -68,17 +84,23 @@ export async function initializeDatabaseIfNeeded() {
       CREATE INDEX IF NOT EXISTS "Certificate_phone_idx" ON "Certificate"("phone");
     `);
 
+    await db.$executeRawUnsafe(`
+      CREATE INDEX IF NOT EXISTS "Certificate_email_idx" ON "Certificate"("email");
+    `);
+
     const count = await db.certificate.count().catch(() => 0);
     if (count === 0 && Array.isArray(testingData) && testingData.length > 0) {
       console.log(`Auto-seeding ${testingData.length} records into SQLite database...`);
       for (const cert of testingData as CertificateRecord[]) {
+        const extractedEmail = extractEmailFromDetails(cert.details, cert.email);
         await db.certificate.create({
           data: {
             id: cert.id,
             certificateId: cert.certificateId,
             name: cert.name,
-            phone: cert.phone,
+            phone: cert.phone || "",
             cleanPhone: (cert.phone || "").replace(/\D/g, ""),
+            email: extractedEmail,
             driveUrl: cert.driveUrl,
             event: cert.event,
             issueDate: cert.issueDate,

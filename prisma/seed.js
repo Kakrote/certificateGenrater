@@ -14,6 +14,15 @@ const dbPath = path.resolve(prismaDir, "dev.db");
 const adapter = new PrismaBetterSqlite3({ url: `file:${dbPath}` });
 const prisma = new PrismaClient({ adapter });
 
+function extractEmailFromDetails(details, explicitEmail) {
+  if (explicitEmail && explicitEmail.trim()) {
+    return explicitEmail.trim().toLowerCase();
+  }
+  if (!details) return null;
+  const emailMatch = details.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/);
+  return emailMatch ? emailMatch[0].toLowerCase() : null;
+}
+
 async function main() {
   try {
     console.log("Checking SQLite database seeding status...");
@@ -24,13 +33,15 @@ async function main() {
       await prisma.certificate.deleteMany({}).catch(() => {});
 
       for (const cert of testingData) {
+        const email = extractEmailFromDetails(cert.details, cert.email);
         await prisma.certificate.create({
           data: {
             id: cert.id,
             certificateId: cert.certificateId,
             name: cert.name,
-            phone: cert.phone,
+            phone: cert.phone || "",
             cleanPhone: (cert.phone || "").replace(/\D/g, ""),
+            email: email,
             driveUrl: cert.driveUrl,
             event: cert.event,
             issueDate: cert.issueDate,

@@ -6,53 +6,67 @@ import { CertificateRecord } from "@/lib/types";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-function findInDataset(phoneQuery: string): CertificateRecord | null {
-  const digitsQuery = phoneQuery.replace(/\D/g, "");
-  if (!digitsQuery) return null;
-  const coreTarget = digitsQuery.length >= 10 ? digitsQuery.slice(-10) : digitsQuery;
-
+function findInDataset(query: string): CertificateRecord | null {
+  if (!query || !query.trim()) return null;
+  const trimmed = query.trim().toLowerCase();
+  const digitsQuery = query.replace(/\D/g, "");
   const dataset = testingData as CertificateRecord[];
 
-  // 1. Priority 1: Exact 10-digit subscriber match
-  let match = dataset.find((rec) => {
-    const recDigits = (rec.phone || "").replace(/\D/g, "");
-    if (!recDigits) return false;
-    const recCore = recDigits.length >= 10 ? recDigits.slice(-10) : recDigits;
-    return recCore === coreTarget;
-  });
+  // 1. Email Search (Exact or Partial in email or details)
+  if (trimmed.includes("@") || /[a-z]/i.test(trimmed)) {
+    let match = dataset.find((rec) => rec.email && rec.email.toLowerCase() === trimmed);
+    if (match) return match;
 
-  if (match) return match;
+    match = dataset.find((rec) => {
+      if (rec.email && rec.email.toLowerCase().includes(trimmed)) return true;
+      if (rec.details && rec.details.toLowerCase().includes(trimmed)) return true;
+      return false;
+    });
+    if (match) return match;
+  }
 
-  // 2. Priority 2: Contains match
-  return (
-    dataset.find((rec) => {
+  // 2. Phone Search
+  if (digitsQuery && digitsQuery.length >= 4) {
+    const coreTarget = digitsQuery.length >= 10 ? digitsQuery.slice(-10) : digitsQuery;
+
+    let match = dataset.find((rec) => {
       const recDigits = (rec.phone || "").replace(/\D/g, "");
       if (!recDigits) return false;
       const recCore = recDigits.length >= 10 ? recDigits.slice(-10) : recDigits;
+      return recCore === coreTarget;
+    });
 
-      return (
-        recDigits.endsWith(coreTarget) ||
-        digitsQuery.endsWith(recCore) ||
-        recDigits.includes(digitsQuery) ||
-        (digitsQuery.length >= 6 && recDigits.includes(coreTarget))
-      );
-    }) || null
-  );
+    if (match) return match;
+
+    return (
+      dataset.find((rec) => {
+        const recDigits = (rec.phone || "").replace(/\D/g, "");
+        if (!recDigits) return false;
+        const recCore = recDigits.length >= 10 ? recDigits.slice(-10) : recDigits;
+
+        return (
+          recDigits.endsWith(coreTarget) ||
+          digitsQuery.endsWith(recCore) ||
+          recDigits.includes(digitsQuery) ||
+          (digitsQuery.length >= 6 && recDigits.includes(coreTarget))
+        );
+      }) || null
+    );
+  }
+
+  return null;
 }
 
 export async function GET(request: Request) {
   try {
     await initializeDatabaseIfNeeded();
     const { searchParams } = new URL(request.url);
-    const phone = searchParams.get("phone");
+    const query = searchParams.get("query") || searchParams.get("phone") || searchParams.get("email");
 
-    if (phone) {
-      const digitsQuery = phone.replace(/\D/g, "");
-      if (!digitsQuery) {
-        return NextResponse.json({ success: false, message: "Invalid phone query" }, { status: 400 });
-      }
-
-      const coreTarget = digitsQuery.length >= 10 ? digitsQuery.slice(-10) : digitsQuery;
+    if (query && query.trim()) {
+      const cleanQuery = query.trim();
+      const digitsQuery = cleanQuery.replace(/\D/g, "");
+      const isEmailLike = cleanQuery.includes("@") || /[a-z]/i.test(cleanQuery);
 
       try {
         await db.systemStat.upsert({
@@ -61,40 +75,63 @@ export async function GET(request: Request) {
           create: { key: "lookupCount", value: 597 },
         });
 
-        // Query SQLite database with clean digits or raw phone
-        const certificates = await db.certificate.findMany({
-          where: {
-            OR: [
-              { cleanPhone: { contains: coreTarget } },
-              { phone: { contains: coreTarget } },
-              { cleanPhone: { contains: digitsQuery } },
-              { phone: { contains: digitsQuery } },
-            ],
-          },
-        });
+        const orConditions: any[] = [];
 
-        if (certificates.length > 0) {
-          // Sort to prioritize exact subscriber core match
-          const bestMatch =
-            certificates.find((c) => {
-              const cClean = c.cleanPhone || c.phone.replace(/\D/g, "");
-              return cClean.endsWith(coreTarget) || cClean === digitsQuery;
-            }) || certificates[0];
+        if (isEmailLike) {
+          orConditions.push(
+            { email: { contains: cleanQuery } },
+            { details: { contains: cleanQuery } }
+          );
+        }
 
-          return NextResponse.json({ success: true, certificate: bestMatch });
+        if (digitsQuery && digitsQuery.length >= 4) {
+          const coreTarget = digitsQuery.length >= 10 ? digitsQuery.slice(-10) : digitsQuery;
+          orConditions.push(
+            { cleanPhone: { contains: coreTarget } },
+            { phone: { contains: coreTarget } },
+            { cleanPhone: { contains: digitsQuery } },
+            { phone: { contains: digitsQuery } }
+          );
+        }
+
+        if (orConditions.length > 0) {
+          const certificates = await db.certificate.findMany({
+            where: { OR: orConditions },
+          });
+
+          if (certificates.length > 0) {
+            // Priority matching
+            let bestMatch = certificates[0];
+
+            if (isEmailLike) {
+              const exactEmail = certificates.find(
+                (c) => c.email?.toLowerCase() === cleanQuery.toLowerCase()
+              );
+              if (exactEmail) bestMatch = exactEmail;
+            } else if (digitsQuery) {
+              const coreTarget = digitsQuery.length >= 10 ? digitsQuery.slice(-10) : digitsQuery;
+              const exactPhone = certificates.find((c) => {
+                const cClean = c.cleanPhone || (c.phone || "").replace(/\D/g, "");
+                return cClean.endsWith(coreTarget) || cClean === digitsQuery;
+              });
+              if (exactPhone) bestMatch = exactPhone;
+            }
+
+            return NextResponse.json({ success: true, certificate: bestMatch });
+          }
         }
       } catch (dbErr) {
         console.warn("DB search fallback to JSON:", dbErr);
       }
 
       // Memory fallback
-      const match = findInDataset(phone);
+      const match = findInDataset(cleanQuery);
       if (match) {
         return NextResponse.json({ success: true, certificate: match });
       }
 
       return NextResponse.json(
-        { success: false, message: "No certificate found for this phone number." },
+        { success: false, message: "No certificate found for this phone number or email address." },
         { status: 404 }
       );
     }
@@ -153,8 +190,10 @@ export async function POST(request: Request) {
     if (Array.isArray(body?.records) && body.records.length > 0) {
       const createdRecords = [];
       for (const item of body.records) {
-        if (!item.name || !item.phone) continue;
-        const digits = item.phone.replace(/\D/g, "");
+        if (!item.name || (!item.phone && !item.email)) continue;
+        const phone = item.phone || "";
+        const digits = phone.replace(/\D/g, "");
+        const email = item.email || extractEmailFromDetails(item.details);
         const certId = item.certificateId || `CERT-2026-${Math.floor(1000 + Math.random() * 9000)}`;
 
         try {
@@ -162,8 +201,9 @@ export async function POST(request: Request) {
             data: {
               certificateId: certId,
               name: item.name,
-              phone: item.phone,
+              phone: phone,
               cleanPhone: digits,
+              email: email,
               driveUrl: item.driveUrl || "https://uuassets.uudoon.in/Documents/AIIW2025PC/WPC-1.jpg",
               event: item.event || "General Certificate",
               issueDate: item.issueDate || new Date().toISOString().split("T")[0],
@@ -179,8 +219,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, count: createdRecords.length, records: createdRecords });
     }
 
-    if (body.name && body.phone) {
-      const digits = body.phone.replace(/\D/g, "");
+    if (body.name && (body.phone || body.email)) {
+      const phone = body.phone || "";
+      const digits = phone.replace(/\D/g, "");
+      const email = body.email || extractEmailFromDetails(body.details);
       const certId = body.certificateId || `CERT-2026-${Math.floor(1000 + Math.random() * 9000)}`;
 
       try {
@@ -188,8 +230,9 @@ export async function POST(request: Request) {
           data: {
             certificateId: certId,
             name: body.name,
-            phone: body.phone,
+            phone: phone,
             cleanPhone: digits,
+            email: email,
             driveUrl: body.driveUrl || "https://uuassets.uudoon.in/Documents/AIIW2025PC/WPC-1.jpg",
             event: body.event || "General Certificate",
             issueDate: body.issueDate || new Date().toISOString().split("T")[0],
@@ -209,8 +252,9 @@ export async function POST(request: Request) {
             id: `cert_manual_${Date.now()}`,
             certificateId: certId,
             name: body.name,
-            phone: body.phone,
+            phone: phone,
             cleanPhone: digits,
+            email: email,
             driveUrl: body.driveUrl,
             event: body.event,
             issueDate: body.issueDate,
@@ -237,12 +281,16 @@ export async function PUT(request: Request) {
     }
 
     try {
+      const phone = body.phone || "";
+      const email = body.email || extractEmailFromDetails(body.details);
+
       const updated = await db.certificate.update({
         where: { id: body.id },
         data: {
           name: body.name,
-          phone: body.phone,
-          cleanPhone: (body.phone || "").replace(/\D/g, ""),
+          phone: phone,
+          cleanPhone: phone.replace(/\D/g, ""),
+          email: email,
           driveUrl: body.driveUrl,
           event: body.event,
           issueDate: body.issueDate,

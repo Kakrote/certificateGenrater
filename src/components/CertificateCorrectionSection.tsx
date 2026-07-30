@@ -178,7 +178,7 @@ export const CertificateCorrectionSection: React.FC = () => {
               </div>
               <div className="space-y-0.5">
                 <p className="font-semibold text-slate-800">Quick Tip for Faster Certificate Re-issuance:</p>
-                <p className="text-slate-500">Include your <strong>Registered Phone Number</strong>, <strong>Full Correct Name</strong>, <strong>Institution Details</strong>, and <strong>Certificate ID</strong> (if visible) in your message.</p>
+                <p className="text-slate-500">Include your <strong>Registered Phone Number or Email</strong>, <strong>Full Correct Name</strong>, <strong>Institution Details</strong>, and <strong>Certificate ID</strong> (if visible) in your message.</p>
               </div>
             </div>
             

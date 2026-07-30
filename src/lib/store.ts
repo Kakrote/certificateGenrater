@@ -54,18 +54,19 @@ export async function fetchCertificatesFromApi(): Promise<{ certificates: Certif
   return { certificates: getStoredCertificates(), totalLookups: getLookupCount() };
 }
 
-export async function findCertificateByPhoneApi(phoneQuery: string): Promise<CertificateRecord | null> {
-  if (!phoneQuery) return null;
+export async function findCertificateByQueryApi(query: string): Promise<CertificateRecord | null> {
+  if (!query || !query.trim()) return null;
+  const cleanQuery = query.trim();
 
   // 1. Try local instant search first for 0ms response time
   const localList = getStoredCertificates();
-  const instantMatch = findCertificateByPhone(phoneQuery, localList) || findCertificateByPhone(phoneQuery, INITIAL_CERTIFICATES);
+  const instantMatch = findCertificateByQuery(cleanQuery, localList) || findCertificateByQuery(cleanQuery, INITIAL_CERTIFICATES);
 
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 2500);
 
-    const res = await fetch(`/api/certificates?phone=${encodeURIComponent(phoneQuery)}`, { signal: controller.signal });
+    const res = await fetch(`/api/certificates?query=${encodeURIComponent(cleanQuery)}`, { signal: controller.signal });
     clearTimeout(timeoutId);
 
     if (res.ok) {
@@ -81,40 +82,61 @@ export async function findCertificateByPhoneApi(phoneQuery: string): Promise<Cer
   return instantMatch;
 }
 
-export function findCertificateByPhone(phoneQuery: string, records: CertificateRecord[]): CertificateRecord | null {
-  if (!phoneQuery || !Array.isArray(records)) return null;
-  const digitsQuery = phoneQuery.replace(/\D/g, "");
-  if (!digitsQuery) return null;
+export async function findCertificateByPhoneApi(phoneQuery: string): Promise<CertificateRecord | null> {
+  return findCertificateByQueryApi(phoneQuery);
+}
 
-  // Extract core subscriber digits (last 10 digits)
-  const coreTarget = digitsQuery.length >= 10 ? digitsQuery.slice(-10) : digitsQuery;
+export function findCertificateByQuery(query: string, records: CertificateRecord[]): CertificateRecord | null {
+  if (!query || !query.trim() || !Array.isArray(records)) return null;
+  const trimmed = query.trim().toLowerCase();
+  const digitsQuery = query.replace(/\D/g, "");
 
   const searchInList = (list: CertificateRecord[]): CertificateRecord | null => {
-    // 1. Priority 1: Exact subscriber 10-digit match
-    let match = list.find((rec) => {
-      const recDigits = (rec.phone || "").replace(/\D/g, "");
-      if (!recDigits) return false;
-      const recCore = recDigits.length >= 10 ? recDigits.slice(-10) : recDigits;
-      return recCore === coreTarget;
-    });
+    // 1. Email Search (Exact or Partial)
+    if (trimmed.includes("@") || /[a-z]/i.test(trimmed)) {
+      // Exact email field match
+      let emailMatch = list.find((rec) => rec.email && rec.email.toLowerCase() === trimmed);
+      if (emailMatch) return emailMatch;
 
-    if (match) return match;
+      // Email match inside details field or email starts/includes
+      emailMatch = list.find((rec) => {
+        if (rec.email && rec.email.toLowerCase().includes(trimmed)) return true;
+        if (rec.details && rec.details.toLowerCase().includes(trimmed)) return true;
+        return false;
+      });
+      if (emailMatch) return emailMatch;
+    }
 
-    // 2. Priority 2: Substring/contains match for valid query lengths
-    match = list.find((rec) => {
-      const recDigits = (rec.phone || "").replace(/\D/g, "");
-      if (!recDigits) return false;
-      const recCore = recDigits.length >= 10 ? recDigits.slice(-10) : recDigits;
+    // 2. Phone Search (Exact subscriber or Contains)
+    if (digitsQuery && digitsQuery.length >= 4) {
+      const coreTarget = digitsQuery.length >= 10 ? digitsQuery.slice(-10) : digitsQuery;
 
-      return (
-        recDigits.endsWith(coreTarget) ||
-        digitsQuery.endsWith(recCore) ||
-        recDigits.includes(digitsQuery) ||
-        (digitsQuery.length >= 6 && recDigits.includes(coreTarget))
-      );
-    });
+      // Priority 1: Exact subscriber 10-digit match
+      let phoneMatch = list.find((rec) => {
+        const recDigits = (rec.phone || "").replace(/\D/g, "");
+        if (!recDigits) return false;
+        const recCore = recDigits.length >= 10 ? recDigits.slice(-10) : recDigits;
+        return recCore === coreTarget;
+      });
+      if (phoneMatch) return phoneMatch;
 
-    return match || null;
+      // Priority 2: Substring/contains match for valid query lengths
+      phoneMatch = list.find((rec) => {
+        const recDigits = (rec.phone || "").replace(/\D/g, "");
+        if (!recDigits) return false;
+        const recCore = recDigits.length >= 10 ? recDigits.slice(-10) : recDigits;
+
+        return (
+          recDigits.endsWith(coreTarget) ||
+          digitsQuery.endsWith(recCore) ||
+          recDigits.includes(digitsQuery) ||
+          (digitsQuery.length >= 6 && recDigits.includes(coreTarget))
+        );
+      });
+      if (phoneMatch) return phoneMatch;
+    }
+
+    return null;
   };
 
   const primaryMatch = searchInList(records);
@@ -125,6 +147,10 @@ export function findCertificateByPhone(phoneQuery: string, records: CertificateR
   }
 
   return null;
+}
+
+export function findCertificateByPhone(phoneQuery: string, records: CertificateRecord[]): CertificateRecord | null {
+  return findCertificateByQuery(phoneQuery, records);
 }
 
 export async function incrementCertificateDownloadApi(id: string): Promise<CertificateRecord[]> {

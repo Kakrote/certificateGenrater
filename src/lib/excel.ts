@@ -53,6 +53,10 @@ export function parseExcelOrCsvFile(file: File): Promise<CertificateRecord[]> {
           "contact", "phoneno", "mobileno", "cell", "telephone", "phone#", "mobile#", "number"
         ];
 
+        const emailAliases = [
+          "emailaddress", "email", "mail", "e-mail", "emailid", "useremail", "studentemail", "contactemail"
+        ];
+
         const driveAliases = [
           "certificatedrivelink", "drivelink", "driveurl", "url", "link",
           "certificatelink", "drive", "googledrivelink", "fileurl", "filelink", "drivefile"
@@ -76,13 +80,26 @@ export function parseExcelOrCsvFile(file: File): Promise<CertificateRecord[]> {
 
           let name = getColumnValue(row, nameAliases);
           let phone = getColumnValue(row, phoneAliases);
+          let email = getColumnValue(row, emailAliases);
           let driveUrl = getColumnValue(row, driveAliases);
           let event = getColumnValue(row, eventAliases);
           let issueDate = getColumnValue(row, dateAliases);
           let details = getColumnValue(row, detailsAliases);
 
           // Smart auto-discovery for missing fields:
-          // 1. If phone was not matched by key, search all row values for digit sequence (>= 7 digits)
+          // 1. If email was not matched by key, search for @ in row values
+          if (!email) {
+            const emailValue = allRowValues.find((val) => val.includes("@") && !val.toLowerCase().includes("http"));
+            if (emailValue) email = emailValue;
+          }
+
+          // If email is still missing, attempt regex extraction from details
+          if (!email && details) {
+            const match = details.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/);
+            if (match) email = match[0];
+          }
+
+          // 2. If phone was not matched by key, search all row values for digit sequence (>= 7 digits)
           if (!phone) {
             const digitValue = allRowValues.find((val) => {
               const digitsOnly = val.replace(/\D/g, "");
@@ -91,24 +108,24 @@ export function parseExcelOrCsvFile(file: File): Promise<CertificateRecord[]> {
             if (digitValue) phone = digitValue;
           }
 
-          // 2. If driveUrl was not matched by key, search all row values for 'http' or 'drive'
+          // 3. If driveUrl was not matched by key, search all row values for 'http' or 'drive'
           if (!driveUrl) {
             const urlValue = allRowValues.find((val) => val.toLowerCase().includes("http") || val.toLowerCase().includes("drive"));
             if (urlValue) driveUrl = urlValue;
           }
 
-          // 3. If name was not matched by key, pick first non-URL, non-numeric text value
+          // 4. If name was not matched by key, pick first non-URL, non-numeric text value
           if (!name) {
             const textValue = allRowValues.find((val) => {
               const clean = val.replace(/\D/g, "");
-              return !val.toLowerCase().includes("http") && clean.length < 7 && val.length >= 2;
+              return !val.toLowerCase().includes("http") && !val.includes("@") && clean.length < 7 && val.length >= 2;
             });
             if (textValue) name = textValue;
           }
 
           // Fallbacks for valid entry
           if (!name) name = `Participant ${index + 1}`;
-          if (!phone) phone = `+19876543${100 + index}`;
+          if (!phone && !email) phone = `+19876543${100 + index}`;
 
           const randomSuffix = Math.floor(1000 + Math.random() * 9000);
 
@@ -116,7 +133,8 @@ export function parseExcelOrCsvFile(file: File): Promise<CertificateRecord[]> {
             id: `cert_upload_${Date.now()}_${index}`,
             certificateId: `CERT-2026-${randomSuffix}`,
             name: name.trim(),
-            phone: phone.trim(),
+            phone: phone ? phone.trim() : "",
+            email: email ? email.trim().toLowerCase() : undefined,
             driveUrl: driveUrl.trim() || "https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/view",
             event: event.trim() || "Certificate of Excellence",
             issueDate: issueDate.trim() || new Date().toISOString().split("T")[0],
@@ -144,14 +162,16 @@ export function parseExcelOrCsvFile(file: File): Promise<CertificateRecord[]> {
           const c3 = String(row[3] || "").trim();
 
           // Skip if header row
-          if (i === 0 && (c0.toLowerCase().includes("name") || c1.toLowerCase().includes("phone"))) continue;
+          if (i === 0 && (c0.toLowerCase().includes("name") || c1.toLowerCase().includes("phone") || c1.toLowerCase().includes("email"))) continue;
 
           if (c0 || c1) {
+            const isC1Email = c1.includes("@");
             fallbackRecords.push({
               id: `cert_upload_2d_${Date.now()}_${i}`,
               certificateId: `CERT-2026-${Math.floor(1000 + Math.random() * 9000)}`,
               name: c0 || `Participant ${i}`,
-              phone: c1 || `+19876543${100 + i}`,
+              phone: !isC1Email ? (c1 || `+19876543${100 + i}`) : "",
+              email: isC1Email ? c1.toLowerCase() : undefined,
               driveUrl: c2 || "https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/view",
               event: c3 || "Certificate of Excellence",
               issueDate: new Date().toISOString().split("T")[0],
@@ -183,6 +203,7 @@ export function generateSampleExcelFile(): void {
     {
       "Full Name": "Johnathan Doe",
       "Phone Number": "+19876543210",
+      "Email Address": "johnathan.doe@example.com",
       "Certificate Drive Link": "https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/view?usp=sharing",
       "Event Name": "Next.js Full-Stack Masterclass 2026",
       "Issue Date": "2026-07-20",
@@ -190,7 +211,8 @@ export function generateSampleExcelFile(): void {
     },
     {
       "Full Name": "Sarah Jenkins",
-      "Phone Number": "+15550192834",
+      "Phone Number": "",
+      "Email Address": "sarah.jenkins@example.com",
       "Certificate Drive Link": "https://drive.google.com/file/d/1v8T-vWp3mH9zZ1Xn3lXn3lXn3lXn3lXn/view",
       "Event Name": "AI Systems & Microservices Hackathon",
       "Issue Date": "2026-07-15",
@@ -199,6 +221,7 @@ export function generateSampleExcelFile(): void {
     {
       "Full Name": "Aarav Patel",
       "Phone Number": "+919876543210",
+      "Email Address": "aarav.patel@example.com",
       "Certificate Drive Link": "https://drive.google.com/file/d/1u2v3w4x5y6z7a8b9c0d1e2f3g4h5i6j/view",
       "Event Name": "Global Cloud & DevOps Conference",
       "Issue Date": "2026-06-30",
@@ -211,7 +234,7 @@ export function generateSampleExcelFile(): void {
   XLSX.utils.book_append_sheet(workbook, worksheet, "Certificates");
 
   // Auto-width columns
-  const maxWidths = [20, 18, 50, 35, 15, 40];
+  const maxWidths = [20, 18, 25, 50, 35, 15, 40];
   worksheet["!cols"] = maxWidths.map((w) => ({ wch: w }));
 
   XLSX.writeFile(workbook, "Sample_Certificate_Distribution_Template.xlsx");
@@ -221,7 +244,8 @@ export function exportCertificatesToExcel(records: CertificateRecord[]): void {
   const exportData = records.map((r) => ({
     "Certificate ID": r.certificateId,
     "Full Name": r.name,
-    "Phone Number": r.phone,
+    "Phone Number": r.phone || "",
+    "Email Address": r.email || "",
     "Certificate Drive Link": r.driveUrl,
     "Event Name": r.event,
     "Issue Date": r.issueDate,

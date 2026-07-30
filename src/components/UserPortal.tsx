@@ -24,7 +24,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export const UserPortal: React.FC = () => {
   const { showToast } = useToast();
-  const [phoneNumber, setPhoneNumber] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [foundCertificate, setFoundCertificate] = useState<CertificateRecord | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
@@ -38,14 +38,14 @@ export const UserPortal: React.FC = () => {
     }).catch(() => {});
   }, []);
 
-  // Check URL parameters for direct phone search (e.g. ?phone=7018321825)
+  // Check URL parameters for direct phone or email or query search (e.g. ?query=7018321825 or ?email=user@domain.com)
   useEffect(() => {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
-      const phoneParam = params.get("phone");
-      if (phoneParam) {
-        setPhoneNumber(phoneParam);
-        handleSearch(phoneParam);
+      const queryParam = params.get("query") || params.get("phone") || params.get("email");
+      if (queryParam) {
+        setSearchQuery(queryParam);
+        handleSearch(queryParam);
       }
     }
   }, []);
@@ -65,11 +65,11 @@ export const UserPortal: React.FC = () => {
     }
   };
 
-  const handleSearch = async (phoneToSearch?: string) => {
-    const target = (phoneToSearch !== undefined ? phoneToSearch : phoneNumber) || "";
+  const handleSearch = async (queryToSearch?: string) => {
+    const target = (queryToSearch !== undefined ? queryToSearch : searchQuery) || "";
     const cleanTarget = target.trim();
     if (!cleanTarget) {
-      showToast("Phone Required", "Please enter your registered phone number to search.", "error");
+      showToast("Phone or Email Required", "Please enter your registered phone number or email address to search.", "error");
       return;
     }
 
@@ -78,7 +78,7 @@ export const UserPortal: React.FC = () => {
     recordLookupEvent();
 
     try {
-      const match = await findCertificateByPhoneApi(cleanTarget);
+      const match = await findCertificateByQueryApi(cleanTarget);
       setSearching(false);
 
       if (match) {
@@ -87,7 +87,7 @@ export const UserPortal: React.FC = () => {
         triggerConfetti();
       } else {
         setFoundCertificate(null);
-        showToast("No Record Found", "No certificate found associated with this phone number.", "error");
+        showToast("No Record Found", "No certificate found associated with this phone number or email.", "error");
       }
     } catch (err) {
       console.warn("Search error:", err);
@@ -108,12 +108,12 @@ export const UserPortal: React.FC = () => {
     }
   };
 
-  const handleQuickChip = (e: React.MouseEvent<HTMLButtonElement>, phone: string) => {
+  const handleQuickChip = (e: React.MouseEvent<HTMLButtonElement>, queryVal: string) => {
     e.preventDefault();
     e.stopPropagation();
-    setPhoneNumber(phone);
+    setSearchQuery(queryVal);
     setFoundCertificate(null);
-    handleSearch(phone);
+    handleSearch(queryVal);
   };
 
   return (
@@ -139,7 +139,7 @@ export const UserPortal: React.FC = () => {
         </h1>
 
         <p className="text-slate-600 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
-          Enter your registered phone number to preview and download your 3rd All India IQAC Workshop 2026 certificate.
+          Enter your registered phone number or email address to preview and download your 3rd All India IQAC Workshop 2026 certificate.
         </p>
       </div>
 
@@ -157,13 +157,13 @@ export const UserPortal: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-stretch gap-3">
             <div className="relative flex-1">
               <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-400">
-                <PhoneCall className="w-5 h-5 text-blue-600" />
+                <Search className="w-5 h-5 text-blue-600" />
               </div>
               <input
                 type="text"
-                value={phoneNumber}
-                onChange={(e) => setPhoneNumber(e.target.value)}
-                placeholder="Enter your phone number (e.g. 7018321825)"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Enter registered Phone Number or Email (e.g. 7018321825 or name@gmail.com)"
                 className="w-full pl-12 pr-4 py-4 rounded-2xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-orange-500 focus:bg-white focus:ring-2 focus:ring-orange-500/20 text-base sm:text-lg transition-all"
               />
             </div>
@@ -189,18 +189,21 @@ export const UserPortal: React.FC = () => {
 
           {/* Quick Test Chips */}
           <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
-            <span className="text-xs text-slate-500 font-medium">Quick Test Numbers:</span>
-            {(records.length > 0 ? records : INITIAL_CERTIFICATES).slice(0, 4).map((rec) => (
-              <button
-                key={rec.id}
-                type="button"
-                onClick={(e) => handleQuickChip(e, rec.phone)}
-                className="text-xs px-3 py-1.5 rounded-full bg-orange-50 hover:bg-orange-100 text-orange-900 border border-orange-200 transition-all font-mono cursor-pointer font-medium active:scale-95 flex items-center gap-1"
-              >
-                <span>{rec.phone}</span>
-                <span className="text-[10px] text-blue-700 font-sans">({rec.name})</span>
-              </button>
-            ))}
+            <span className="text-xs text-slate-500 font-medium">Quick Test Search:</span>
+            {(records.length > 0 ? records : INITIAL_CERTIFICATES).slice(0, 4).map((rec) => {
+              const chipVal = rec.phone || rec.email || rec.name;
+              return (
+                <button
+                  key={rec.id}
+                  type="button"
+                  onClick={(e) => handleQuickChip(e, chipVal)}
+                  className="text-xs px-3 py-1.5 rounded-full bg-orange-50 hover:bg-orange-100 text-orange-900 border border-orange-200 transition-all font-mono cursor-pointer font-medium active:scale-95 flex items-center gap-1"
+                >
+                  <span>{chipVal}</span>
+                  <span className="text-[10px] text-blue-700 font-sans">({rec.name})</span>
+                </button>
+              );
+            })}
           </div>
         </form>
       </div>
@@ -216,7 +219,7 @@ export const UserPortal: React.FC = () => {
             className="text-center py-12 space-y-4"
           >
             <div className="w-16 h-16 rounded-full border-4 border-orange-200 border-t-orange-600 animate-spin mx-auto" />
-            <p className="text-slate-600 font-medium text-sm">Searching registry for matching phone record...</p>
+            <p className="text-slate-600 font-medium text-sm">Searching registry for matching phone or email record...</p>
           </motion.div>
         )}
 
@@ -256,15 +259,16 @@ export const UserPortal: React.FC = () => {
             <div>
               <h3 className="text-xl font-bold text-slate-900">No Certificate Found</h3>
               <p className="text-slate-600 text-sm mt-1">
-                We couldn't find any certificate linked with <span className="text-slate-900 font-mono font-bold">{phoneNumber}</span>.
+                We couldn't find any certificate linked with <span className="text-slate-900 font-mono font-bold">{searchQuery}</span>.
               </p>
             </div>
             <div className="bg-slate-50 p-4 rounded-xl text-xs text-slate-600 text-left space-y-2 border border-slate-200">
               <p className="font-semibold text-slate-800">Troubleshooting Tips:</p>
               <ul className="list-disc pl-4 space-y-1">
-                <li>Ensure the phone number matches your registered number.</li>
-                <li>Try searching with or without country code.</li>
-                <li>Contact your organization administrator to add your record.</li>
+                <li>Ensure the phone number or email address matches your registered information.</li>
+                <li>If searching by phone, try searching with or without country code.</li>
+                <li>If searching by email, ensure correct spelling (e.g. name@domain.com).</li>
+                <li>Contact your organization administrator to verify your record.</li>
               </ul>
             </div>
           </motion.div>

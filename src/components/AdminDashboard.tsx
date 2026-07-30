@@ -55,6 +55,7 @@ export const AdminDashboard: React.FC = () => {
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
+    email: "",
     driveUrl: "",
     event: "",
     issueDate: new Date().toISOString().split("T")[0],
@@ -181,8 +182,8 @@ export const AdminDashboard: React.FC = () => {
   // Add Single Certificate
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.phone) {
-      showToast("Validation Error", "Name and Phone Number are required fields.", "error");
+    if (!formData.name || (!formData.phone && !formData.email)) {
+      showToast("Validation Error", "Name and at least one contact (Phone Number or Email) are required.", "error");
       return;
     }
 
@@ -193,6 +194,7 @@ export const AdminDashboard: React.FC = () => {
         body: JSON.stringify({
           name: formData.name.trim(),
           phone: formData.phone.trim(),
+          email: formData.email.trim() || undefined,
           driveUrl: formData.driveUrl.trim() || "https://uuassets.uudoon.in/Documents/AIIW2025PC/WPC-1.jpg",
           event: formData.event.trim() || "General Certificate of Achievement",
           issueDate: formData.issueDate || new Date().toISOString().split("T")[0],
@@ -203,7 +205,7 @@ export const AdminDashboard: React.FC = () => {
       if (json.success) {
         showToast("Certificate Created!", `Saved ${json.certificate.name} to Database.`, "success");
         setShowAddModal(false);
-        setFormData({ name: "", phone: "", driveUrl: "", event: "", issueDate: new Date().toISOString().split("T")[0], details: "" });
+        setFormData({ name: "", phone: "", email: "", driveUrl: "", event: "", issueDate: new Date().toISOString().split("T")[0], details: "" });
         await loadData();
         return;
       }
@@ -216,6 +218,7 @@ export const AdminDashboard: React.FC = () => {
       certificateId: `CERT-2026-${Math.floor(1000 + Math.random() * 9000)}`,
       name: formData.name.trim(),
       phone: formData.phone.trim(),
+      email: formData.email.trim() || undefined,
       driveUrl: formData.driveUrl.trim() || "https://uuassets.uudoon.in/Documents/AIIW2025PC/WPC-1.jpg",
       event: formData.event.trim() || "General Certificate of Achievement",
       issueDate: formData.issueDate || new Date().toISOString().split("T")[0],
@@ -229,7 +232,7 @@ export const AdminDashboard: React.FC = () => {
     saveStoredCertificates(updated);
     showToast("Certificate Created!", `Added record for ${newRec.name}`, "success");
     setShowAddModal(false);
-    setFormData({ name: "", phone: "", driveUrl: "", event: "", issueDate: new Date().toISOString().split("T")[0], details: "" });
+    setFormData({ name: "", phone: "", email: "", driveUrl: "", event: "", issueDate: new Date().toISOString().split("T")[0], details: "" });
   };
 
   // Edit Certificate
@@ -302,6 +305,7 @@ export const AdminDashboard: React.FC = () => {
     return (
       c.name.toLowerCase().includes(q) ||
       c.phone.toLowerCase().includes(q) ||
+      (c.email && c.email.toLowerCase().includes(q)) ||
       c.certificateId.toLowerCase().includes(q) ||
       c.event.toLowerCase().includes(q)
     );
@@ -512,7 +516,7 @@ export const AdminDashboard: React.FC = () => {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by Name, Phone, Event, or Certificate ID..."
+              placeholder="Search by Name, Phone, Email, Event, or Certificate ID..."
               className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-orange-500 focus:bg-white"
             />
           </div>
@@ -534,6 +538,7 @@ export const AdminDashboard: React.FC = () => {
                 <th className="p-3.5">ID</th>
                 <th className="p-3.5">Recipient Name</th>
                 <th className="p-3.5">Phone Number</th>
+                <th className="p-3.5">Email Address</th>
                 <th className="p-3.5">Event Name</th>
                 <th className="p-3.5">Drive Link</th>
                 <th className="p-3.5 text-center">Downloads</th>
@@ -543,7 +548,7 @@ export const AdminDashboard: React.FC = () => {
             <tbody className="divide-y divide-slate-100 text-slate-700">
               {filteredCertificates.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="p-8 text-center text-slate-400">
+                  <td colSpan={8} className="p-8 text-center text-slate-400">
                     No certificates found. Click "Add Single Certificate" to create one.
                   </td>
                 </tr>
@@ -552,7 +557,8 @@ export const AdminDashboard: React.FC = () => {
                   <tr key={cert.id} className="hover:bg-orange-50/40 transition-colors">
                     <td className="p-3.5 font-mono text-[11px] text-slate-500">{cert.certificateId}</td>
                     <td className="p-3.5 font-semibold text-slate-900">{cert.name}</td>
-                    <td className="p-3.5 font-mono text-slate-700">{cert.phone}</td>
+                    <td className="p-3.5 font-mono text-slate-700">{cert.phone || "-"}</td>
+                    <td className="p-3.5 font-mono text-slate-700">{cert.email || "-"}</td>
                     <td className="p-3.5 text-blue-900 font-medium max-w-xs truncate">{cert.event}</td>
                     <td className="p-3.5 max-w-xs truncate">
                       <a
@@ -635,13 +641,23 @@ export const AdminDashboard: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 font-semibold mb-1">Phone Number *</label>
+                  <label className="block text-slate-700 font-semibold mb-1">Phone Number</label>
                   <input
                     type="text"
-                    required
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     placeholder="e.g. 7018321825"
+                    className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:border-orange-500 focus:bg-white font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">Email Address</label>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="e.g. participant@example.com"
                     className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:border-orange-500 focus:bg-white font-mono"
                   />
                 </div>
@@ -745,6 +761,16 @@ export const AdminDashboard: React.FC = () => {
                     type="text"
                     value={editingCert.phone}
                     onChange={(e) => setEditingCert({ ...editingCert, phone: e.target.value })}
+                    className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-1">Email Address</label>
+                  <input
+                    type="email"
+                    value={editingCert.email || ""}
+                    onChange={(e) => setEditingCert({ ...editingCert, email: e.target.value })}
                     className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-mono"
                   />
                 </div>

@@ -12,6 +12,7 @@ model Certificate {
   name          String
   phone         String
   cleanPhone    String
+  email         String?
   driveUrl      String
   event         String
   issueDate     String
@@ -22,6 +23,7 @@ model Certificate {
 
   @@index([cleanPhone])
   @@index([phone])
+  @@index([email])
 }
 
 model SystemStat {
