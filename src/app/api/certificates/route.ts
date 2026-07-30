@@ -12,24 +12,12 @@ function findInDataset(query: string): CertificateRecord | null {
   const digitsQuery = query.replace(/\D/g, "");
   const dataset = testingData as CertificateRecord[];
 
-  // 1. Email Search (Exact or Partial in email or details)
-  if (trimmed.includes("@") || /[a-z]/i.test(trimmed)) {
-    let match = dataset.find((rec) => rec.email && rec.email.toLowerCase() === trimmed);
-    if (match) return match;
-
-    match = dataset.find((rec) => {
-      if (rec.email && rec.email.toLowerCase().includes(trimmed)) return true;
-      if (rec.details && rec.details.toLowerCase().includes(trimmed)) return true;
-      return false;
-    });
-    if (match) return match;
-  }
-
-  // 2. Phone Search
+  // 1. Phone Search (If query has at least 4 digits)
   if (digitsQuery && digitsQuery.length >= 4) {
     const coreTarget = digitsQuery.length >= 10 ? digitsQuery.slice(-10) : digitsQuery;
 
     let match = dataset.find((rec) => {
+      if (!rec) return false;
       const recDigits = (rec.phone || "").replace(/\D/g, "");
       if (!recDigits) return false;
       const recCore = recDigits.length >= 10 ? recDigits.slice(-10) : recDigits;
@@ -38,23 +26,55 @@ function findInDataset(query: string): CertificateRecord | null {
 
     if (match) return match;
 
-    return (
-      dataset.find((rec) => {
-        const recDigits = (rec.phone || "").replace(/\D/g, "");
-        if (!recDigits) return false;
-        const recCore = recDigits.length >= 10 ? recDigits.slice(-10) : recDigits;
+    match = dataset.find((rec) => {
+      if (!rec) return false;
+      const recDigits = (rec.phone || "").replace(/\D/g, "");
+      if (!recDigits) return false;
+      const recCore = recDigits.length >= 10 ? recDigits.slice(-10) : recDigits;
 
-        return (
-          recDigits.endsWith(coreTarget) ||
-          digitsQuery.endsWith(recCore) ||
-          recDigits.includes(digitsQuery) ||
-          (digitsQuery.length >= 6 && recDigits.includes(coreTarget))
-        );
-      }) || null
-    );
+      return (
+        recDigits.endsWith(coreTarget) ||
+        digitsQuery.endsWith(recCore) ||
+        recDigits.includes(digitsQuery) ||
+        (digitsQuery.length >= 6 && recDigits.includes(coreTarget))
+      );
+    });
+
+    if (match) return match;
   }
 
-  return null;
+  // 2. Email Search
+  if (trimmed.includes("@") || trimmed.includes(".")) {
+    let match = dataset.find((rec) => rec && rec.email && rec.email.toLowerCase() === trimmed);
+    if (match) return match;
+
+    match = dataset.find((rec) => {
+      if (!rec) return false;
+      if (rec.email && rec.email.toLowerCase().includes(trimmed)) return true;
+      if (rec.details && rec.details.toLowerCase().includes(trimmed)) return true;
+      return false;
+    });
+    if (match) return match;
+  }
+
+  // 3. Name or Certificate ID Search
+  let match = dataset.find(
+    (rec) =>
+      Boolean(rec) &&
+      ((rec.certificateId && rec.certificateId.toLowerCase() === trimmed) ||
+       (rec.name && rec.name.toLowerCase() === trimmed))
+  );
+  if (match) return match;
+
+  return (
+    dataset.find(
+      (rec) =>
+        Boolean(rec) &&
+        ((rec.certificateId && rec.certificateId.toLowerCase().includes(trimmed)) ||
+         (rec.name && rec.name.toLowerCase().includes(trimmed)) ||
+         (rec.details && rec.details.toLowerCase().includes(trimmed)))
+    ) || null
+  );
 }
 
 export async function GET(request: Request) {
@@ -66,7 +86,6 @@ export async function GET(request: Request) {
     if (query && query.trim()) {
       const cleanQuery = query.trim();
       const digitsQuery = cleanQuery.replace(/\D/g, "");
-      const isEmailLike = cleanQuery.includes("@") || /[a-z]/i.test(cleanQuery);
 
       try {
         await db.systemStat.upsert({
@@ -77,13 +96,7 @@ export async function GET(request: Request) {
 
         const orConditions: any[] = [];
 
-        if (isEmailLike) {
-          orConditions.push(
-            { email: { contains: cleanQuery } },
-            { details: { contains: cleanQuery } }
-          );
-        }
-
+        // Phone search conditions
         if (digitsQuery && digitsQuery.length >= 4) {
           const coreTarget = digitsQuery.length >= 10 ? digitsQuery.slice(-10) : digitsQuery;
           orConditions.push(
@@ -94,6 +107,14 @@ export async function GET(request: Request) {
           );
         }
 
+        // Email, Name, and Certificate ID conditions
+        orConditions.push(
+          { email: { contains: cleanQuery } },
+          { details: { contains: cleanQuery } },
+          { name: { contains: cleanQuery } },
+          { certificateId: { contains: cleanQuery } }
+        );
+
         if (orConditions.length > 0) {
           const certificates = await db.certificate.findMany({
             where: { OR: orConditions },
@@ -103,18 +124,18 @@ export async function GET(request: Request) {
             // Priority matching
             let bestMatch = certificates[0];
 
-            if (isEmailLike) {
-              const exactEmail = certificates.find(
-                (c) => c.email?.toLowerCase() === cleanQuery.toLowerCase()
-              );
-              if (exactEmail) bestMatch = exactEmail;
-            } else if (digitsQuery) {
+            if (digitsQuery && digitsQuery.length >= 4) {
               const coreTarget = digitsQuery.length >= 10 ? digitsQuery.slice(-10) : digitsQuery;
               const exactPhone = certificates.find((c) => {
                 const cClean = c.cleanPhone || (c.phone || "").replace(/\D/g, "");
                 return cClean.endsWith(coreTarget) || cClean === digitsQuery;
               });
               if (exactPhone) bestMatch = exactPhone;
+            } else {
+              const exactEmail = certificates.find(
+                (c) => c.email?.toLowerCase() === cleanQuery.toLowerCase()
+              );
+              if (exactEmail) bestMatch = exactEmail;
             }
 
             return NextResponse.json({ success: true, certificate: bestMatch });
@@ -131,7 +152,7 @@ export async function GET(request: Request) {
       }
 
       return NextResponse.json(
-        { success: false, message: "No certificate found for this phone number or email address." },
+        { success: false, message: "No certificate found for your search query." },
         { status: 404 }
       );
     }

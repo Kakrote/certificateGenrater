@@ -89,12 +89,18 @@ export async function initializeDatabaseIfNeeded() {
     `);
 
     const count = await db.certificate.count().catch(() => 0);
-    if (count === 0 && Array.isArray(testingData) && testingData.length > 0) {
+    if (count < testingData.length && Array.isArray(testingData) && testingData.length > 0) {
       console.log(`Auto-seeding ${testingData.length} records into SQLite database...`);
       for (const cert of testingData as CertificateRecord[]) {
         const extractedEmail = extractEmailFromDetails(cert.details, cert.email);
-        await db.certificate.create({
-          data: {
+        await db.certificate.upsert({
+          where: { certificateId: cert.certificateId },
+          update: {
+            phone: cert.phone || "",
+            cleanPhone: (cert.phone || "").replace(/\D/g, ""),
+            email: extractedEmail,
+          },
+          create: {
             id: cert.id,
             certificateId: cert.certificateId,
             name: cert.name,

@@ -4,7 +4,7 @@ import testingData from "./testingData.json";
 
 export const INITIAL_CERTIFICATES: CertificateRecord[] = testingData as CertificateRecord[];
 
-const LOCAL_STORAGE_KEY = "certipulse_certificates_v2";
+const LOCAL_STORAGE_KEY = "certipulse_certificates_v3";
 const LOOKUPS_KEY = "certipulse_total_lookups_v1";
 
 export function getStoredCertificates(): CertificateRecord[] {
@@ -92,27 +92,13 @@ export function findCertificateByQuery(query: string, records: CertificateRecord
   const digitsQuery = query.replace(/\D/g, "");
 
   const searchInList = (list: CertificateRecord[]): CertificateRecord | null => {
-    // 1. Email Search (Exact or Partial)
-    if (trimmed.includes("@") || /[a-z]/i.test(trimmed)) {
-      // Exact email field match
-      let emailMatch = list.find((rec) => rec.email && rec.email.toLowerCase() === trimmed);
-      if (emailMatch) return emailMatch;
-
-      // Email match inside details field or email starts/includes
-      emailMatch = list.find((rec) => {
-        if (rec.email && rec.email.toLowerCase().includes(trimmed)) return true;
-        if (rec.details && rec.details.toLowerCase().includes(trimmed)) return true;
-        return false;
-      });
-      if (emailMatch) return emailMatch;
-    }
-
-    // 2. Phone Search (Exact subscriber or Contains)
+    // 1. Phone Search (If query contains digits)
     if (digitsQuery && digitsQuery.length >= 4) {
       const coreTarget = digitsQuery.length >= 10 ? digitsQuery.slice(-10) : digitsQuery;
 
       // Priority 1: Exact subscriber 10-digit match
       let phoneMatch = list.find((rec) => {
+        if (!rec) return false;
         const recDigits = (rec.phone || "").replace(/\D/g, "");
         if (!recDigits) return false;
         const recCore = recDigits.length >= 10 ? recDigits.slice(-10) : recDigits;
@@ -120,8 +106,9 @@ export function findCertificateByQuery(query: string, records: CertificateRecord
       });
       if (phoneMatch) return phoneMatch;
 
-      // Priority 2: Substring/contains match for valid query lengths
+      // Priority 2: Substring / contains match for valid query lengths
       phoneMatch = list.find((rec) => {
+        if (!rec) return false;
         const recDigits = (rec.phone || "").replace(/\D/g, "");
         if (!recDigits) return false;
         const recCore = recDigits.length >= 10 ? recDigits.slice(-10) : recDigits;
@@ -135,6 +122,38 @@ export function findCertificateByQuery(query: string, records: CertificateRecord
       });
       if (phoneMatch) return phoneMatch;
     }
+
+    // 2. Email Search
+    if (trimmed.includes("@") || trimmed.includes(".")) {
+      let emailMatch = list.find((rec) => rec && rec.email && rec.email.toLowerCase() === trimmed);
+      if (emailMatch) return emailMatch;
+
+      emailMatch = list.find((rec) => {
+        if (!rec) return false;
+        if (rec.email && rec.email.toLowerCase().includes(trimmed)) return true;
+        if (rec.details && rec.details.toLowerCase().includes(trimmed)) return true;
+        return false;
+      });
+      if (emailMatch) return emailMatch;
+    }
+
+    // 3. Certificate ID or Name Search
+    let textMatch = list.find(
+      (rec) =>
+        Boolean(rec) &&
+        ((rec.certificateId && rec.certificateId.toLowerCase() === trimmed) ||
+         (rec.name && rec.name.toLowerCase() === trimmed))
+    );
+    if (textMatch) return textMatch;
+
+    textMatch = list.find(
+      (rec) =>
+        Boolean(rec) &&
+        ((rec.certificateId && rec.certificateId.toLowerCase().includes(trimmed)) ||
+         (rec.name && rec.name.toLowerCase().includes(trimmed)) ||
+         (rec.details && rec.details.toLowerCase().includes(trimmed)))
+    );
+    if (textMatch) return textMatch;
 
     return null;
   };

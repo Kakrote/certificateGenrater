@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { CertificateRecord } from "@/lib/types";
 import {
   fetchCertificatesFromApi,
+  findCertificateByQueryApi,
   findCertificateByPhoneApi,
   incrementCertificateDownloadApi,
   recordLookupEvent,
