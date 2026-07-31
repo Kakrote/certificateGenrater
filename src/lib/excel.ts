@@ -59,7 +59,8 @@ export function parseExcelOrCsvFile(file: File): Promise<CertificateRecord[]> {
 
         const driveAliases = [
           "certificatedrivelink", "drivelink", "driveurl", "url", "link",
-          "certificatelink", "drive", "googledrivelink", "fileurl", "filelink", "drivefile"
+          "certificatelink", "drive", "googledrivelink", "fileurl", "filelink", "drivefile",
+          "uuassets", "uuassetslink", "uuassetsurl", "uuasset", "certificatelocation", "asseturl"
         ];
 
         const eventAliases = [
@@ -108,9 +109,13 @@ export function parseExcelOrCsvFile(file: File): Promise<CertificateRecord[]> {
             if (digitValue) phone = digitValue;
           }
 
-          // 3. If driveUrl was not matched by key, search all row values for 'http' or 'drive'
+          // 3. If driveUrl was not matched by key, search all row values for 'http', 'drive', or 'uuassets'
           if (!driveUrl) {
-            const urlValue = allRowValues.find((val) => val.toLowerCase().includes("http") || val.toLowerCase().includes("drive"));
+            const urlValue = allRowValues.find((val) => 
+              val.toLowerCase().includes("http") || 
+              val.toLowerCase().includes("drive") || 
+              val.toLowerCase().includes("uuassets")
+            );
             if (urlValue) driveUrl = urlValue;
           }
 
@@ -204,7 +209,7 @@ export function generateSampleExcelFile(): void {
       "Full Name": "Johnathan Doe",
       "Phone Number": "+19876543210",
       "Email Address": "johnathan.doe@example.com",
-      "Certificate Drive Link": "https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/view?usp=sharing",
+      "Certificate Drive Link": "/uuassets/certificate_john_doe.jpg",
       "Event Name": "Next.js Full-Stack Masterclass 2026",
       "Issue Date": "2026-07-20",
       "Details": "Grade A+ (Distinction in React 19 & Server Actions)",
@@ -222,7 +227,7 @@ export function generateSampleExcelFile(): void {
       "Full Name": "Aarav Patel",
       "Phone Number": "+919876543210",
       "Email Address": "aarav.patel@example.com",
-      "Certificate Drive Link": "https://drive.google.com/file/d/1u2v3w4x5y6z7a8b9c0d1e2f3g4h5i6j/view",
+      "Certificate Drive Link": "/uuassets/certificate_aarav_patel.pdf",
       "Event Name": "Global Cloud & DevOps Conference",
       "Issue Date": "2026-06-30",
       "Details": "Certified Cloud Solutions Architect",
@@ -259,4 +264,32 @@ export function exportCertificatesToExcel(records: CertificateRecord[]): void {
   XLSX.utils.book_append_sheet(workbook, worksheet, "Certificates Export");
 
   XLSX.writeFile(workbook, `Certificates_Export_${new Date().toISOString().split("T")[0]}.xlsx`);
+}
+
+export function generateExcelFromUuassets(uuassetFiles: { filename: string; url: string }[]): void {
+  const sampleData = uuassetFiles.map((file, idx) => {
+    // Clean filename for initial name guess
+    const nameWithoutExt = file.filename.replace(/\.[^/.]+$/, "");
+    const cleanName = nameWithoutExt.replace(/[-_]/g, " ").replace(/\d+/g, "").trim();
+    const digits = nameWithoutExt.replace(/\D/g, "");
+
+    return {
+      "Full Name": cleanName || `Participant ${idx + 1}`,
+      "Phone Number": digits.length >= 7 ? digits : "",
+      "Email Address": "",
+      "Certificate Drive Link": file.url,
+      "Event Name": "General Certificate of Achievement",
+      "Issue Date": new Date().toISOString().split("T")[0],
+      "Details": "Bulk Uploaded Certificate Asset",
+    };
+  });
+
+  const worksheet = XLSX.utils.json_to_sheet(sampleData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Bulk uuassets Links");
+
+  const maxWidths = [25, 18, 25, 45, 35, 15, 30];
+  worksheet["!cols"] = maxWidths.map((w) => ({ wch: w }));
+
+  XLSX.writeFile(workbook, `Bulk_uuassets_Certificates_Template_${new Date().toISOString().split("T")[0]}.xlsx`);
 }

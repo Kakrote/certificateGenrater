@@ -25,14 +25,17 @@ import {
   Upload,
   Download,
   FileSpreadsheet,
+  FolderUp,
 } from "lucide-react";
 import { parseExcelOrCsvFile, generateSampleExcelFile, exportCertificatesToExcel } from "@/lib/excel";
+import { UuassetsManager } from "./UuassetsManager";
 import { motion, AnimatePresence } from "framer-motion";
 
 export const AdminDashboard: React.FC = () => {
   const { showToast } = useToast();
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [activeTab, setActiveTab] = useState<"records" | "uuassets">("records");
 
   // Authentication State
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -50,6 +53,7 @@ export const AdminDashboard: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingCert, setEditingCert] = useState<CertificateRecord | null>(null);
   const [previewCert, setPreviewCert] = useState<CertificateRecord | null>(null);
+  const [assetPickerTarget, setAssetPickerTarget] = useState<"add" | "edit" | null>(null);
 
   // Form states
   const [formData, setFormData] = useState({
@@ -422,6 +426,19 @@ export const AdminDashboard: React.FC = () => {
           />
 
           <button
+            onClick={() => setActiveTab(activeTab === "records" ? "uuassets" : "records")}
+            className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+              activeTab === "uuassets"
+                ? "bg-amber-600 text-white shadow-md shadow-amber-600/20"
+                : "bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200"
+            }`}
+            title="Upload certificate files to uuassets and copy links"
+          >
+            <FolderUp className="w-3.5 h-3.5 text-amber-600" />
+            {activeTab === "uuassets" ? "Database Records" : "uuassets Manager"}
+          </button>
+
+          <button
             onClick={() => fileInputRef.current?.click()}
             disabled={isUploading}
             className="px-3.5 py-2 rounded-xl bg-orange-50 hover:bg-orange-100 text-orange-900 border border-orange-200 text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
@@ -468,44 +485,83 @@ export const AdminDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Analytics Overview Bar */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-md shadow-blue-950/5">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-semibold uppercase tracking-wider">Total Issued</span>
-            <Award className="w-5 h-5 text-orange-600" />
-          </div>
-          <p className="text-2xl font-extrabold text-slate-900 mt-2">{certificates.length}</p>
-          <span className="text-[11px] text-orange-700 font-medium mt-1 block">Active Records</span>
-        </div>
+      {/* Main Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-3">
+        <button
+          onClick={() => setActiveTab("records")}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            activeTab === "records"
+              ? "bg-slate-900 text-white shadow-md"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
+          }`}
+        >
+          <Award className="w-4 h-4 text-orange-400" />
+          <span>Certificates Database</span>
+          <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] bg-white/20 text-white font-mono">
+            {certificates.length}
+          </span>
+        </button>
 
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-md shadow-blue-950/5">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-semibold uppercase tracking-wider">Lookup Requests</span>
-            <Users className="w-5 h-5 text-teal-600" />
-          </div>
-          <p className="text-2xl font-extrabold text-slate-900 mt-2">{totalLookups}</p>
-          <span className="text-[11px] text-slate-500 mt-1 block">User Searches</span>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-md shadow-blue-950/5">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-semibold uppercase tracking-wider">Total Downloads</span>
-            <BarChart3 className="w-5 h-5 text-indigo-600" />
-          </div>
-          <p className="text-2xl font-extrabold text-slate-900 mt-2">{totalDownloads}</p>
-          <span className="text-[11px] text-indigo-700 mt-1 block">Files Exported</span>
-        </div>
-
-        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-md shadow-blue-950/5">
-          <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-semibold uppercase tracking-wider">Active Events</span>
-            <FileText className="w-5 h-5 text-amber-600" />
-          </div>
-          <p className="text-2xl font-extrabold text-slate-900 mt-2">{totalEvents}</p>
-          <span className="text-[11px] text-amber-700 mt-1 block">Courses & Hackathons</span>
-        </div>
+        <button
+          onClick={() => setActiveTab("uuassets")}
+          className={`px-4 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
+            activeTab === "uuassets"
+              ? "bg-gradient-to-r from-orange-600 to-amber-600 text-white shadow-md shadow-orange-600/20"
+              : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900"
+          }`}
+        >
+          <FolderUp className="w-4 h-4 text-amber-300" />
+          <span>uuassets Repository</span>
+          <span className="px-2 py-0.5 rounded-full text-[10px] bg-white/20 text-white font-mono uppercase">
+            Upload & Copy Links
+          </span>
+        </button>
       </div>
+
+      {activeTab === "uuassets" ? (
+        <UuassetsManager />
+      ) : (
+        <>
+          {/* Analytics Overview Bar */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-md shadow-blue-950/5">
+              <div className="flex items-center justify-between text-slate-500">
+                <span className="text-xs font-semibold uppercase tracking-wider">Total Issued</span>
+                <Award className="w-5 h-5 text-orange-600" />
+              </div>
+              <p className="text-2xl font-extrabold text-slate-900 mt-2">{certificates.length}</p>
+              <span className="text-[11px] text-orange-700 font-medium mt-1 block">Active Records</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-md shadow-blue-950/5">
+              <div className="flex items-center justify-between text-slate-500">
+                <span className="text-xs font-semibold uppercase tracking-wider">Lookup Requests</span>
+                <Users className="w-5 h-5 text-teal-600" />
+              </div>
+              <p className="text-2xl font-extrabold text-slate-900 mt-2">{totalLookups}</p>
+              <span className="text-[11px] text-slate-500 mt-1 block">User Searches</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-md shadow-blue-950/5">
+              <div className="flex items-center justify-between text-slate-500">
+                <span className="text-xs font-semibold uppercase tracking-wider">Total Downloads</span>
+                <BarChart3 className="w-5 h-5 text-indigo-600" />
+              </div>
+              <p className="text-2xl font-extrabold text-slate-900 mt-2">{totalDownloads}</p>
+              <span className="text-[11px] text-indigo-700 mt-1 block">Files Exported</span>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-md shadow-blue-950/5">
+              <div className="flex items-center justify-between text-slate-500">
+                <span className="text-xs font-semibold uppercase tracking-wider">Active Events</span>
+                <FileText className="w-5 h-5 text-amber-600" />
+              </div>
+              <p className="text-2xl font-extrabold text-slate-900 mt-2">{totalEvents}</p>
+              <span className="text-[11px] text-amber-700 mt-1 block">Courses & Hackathons</span>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Main Records Table */}
       <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl shadow-blue-950/5 space-y-4">
@@ -663,12 +719,21 @@ export const AdminDashboard: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 font-semibold mb-1">Certificate Drive Link</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-slate-700 font-semibold">Certificate Drive / uuassets Link</label>
+                    <button
+                      type="button"
+                      onClick={() => setAssetPickerTarget("add")}
+                      className="text-[11px] text-orange-600 hover:text-orange-700 font-bold flex items-center gap-1 cursor-pointer"
+                    >
+                      <FolderUp className="w-3.5 h-3.5" /> Select from uuassets
+                    </button>
+                  </div>
                   <input
-                    type="url"
+                    type="text"
                     value={formData.driveUrl}
                     onChange={(e) => setFormData({ ...formData, driveUrl: e.target.value })}
-                    placeholder="https://uuassets.uudoon.in/Documents/..."
+                    placeholder="/uuassets/my-certificate.png or https://..."
                     className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 focus:border-orange-500 focus:bg-white font-mono"
                   />
                 </div>
@@ -776,9 +841,18 @@ export const AdminDashboard: React.FC = () => {
                 </div>
 
                 <div>
-                  <label className="block text-slate-700 font-semibold mb-1">Drive Link</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-slate-700 font-semibold">Drive / uuassets Link</label>
+                    <button
+                      type="button"
+                      onClick={() => setAssetPickerTarget("edit")}
+                      className="text-[11px] text-orange-600 hover:text-orange-700 font-bold flex items-center gap-1 cursor-pointer"
+                    >
+                      <FolderUp className="w-3.5 h-3.5" /> Select from uuassets
+                    </button>
+                  </div>
                   <input
-                    type="url"
+                    type="text"
                     value={editingCert.driveUrl}
                     onChange={(e) => setEditingCert({ ...editingCert, driveUrl: e.target.value })}
                     className="w-full p-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 font-mono"
@@ -856,6 +930,47 @@ export const AdminDashboard: React.FC = () => {
                 </button>
               </div>
               <CertificatePreview certificate={previewCert} />
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Asset Picker Modal */}
+      <AnimatePresence>
+        {assetPickerTarget && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md overflow-y-auto">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white border border-slate-200 rounded-3xl p-6 w-full max-w-4xl max-h-[85vh] overflow-y-auto shadow-2xl space-y-4 my-auto"
+            >
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <FolderUp className="w-5 h-5 text-orange-600" />
+                  Select Certificate Asset from uuassets
+                </h3>
+                <button
+                  onClick={() => setAssetPickerTarget(null)}
+                  className="text-slate-400 hover:text-slate-700 cursor-pointer"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <UuassetsManager
+                compact
+                onSelectUrl={(selectedUrl) => {
+                  if (assetPickerTarget === "add") {
+                    setFormData({ ...formData, driveUrl: selectedUrl });
+                    showToast("Asset Linked!", `Selected ${selectedUrl}`, "success");
+                  } else if (assetPickerTarget === "edit" && editingCert) {
+                    setEditingCert({ ...editingCert, driveUrl: selectedUrl });
+                    showToast("Asset Linked!", `Selected ${selectedUrl}`, "success");
+                  }
+                  setAssetPickerTarget(null);
+                }}
+              />
             </motion.div>
           </div>
         )}
