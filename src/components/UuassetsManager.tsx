@@ -265,7 +265,13 @@ export const UuassetsManager: React.FC<UuassetsManagerProps> = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
   };
 
-  // Filtered files list based on selected folder and search query
+  const getFullDomainUrl = (file: UuassetFile) => {
+    if (typeof window !== "undefined") {
+      return `${window.location.origin}${file.url}`;
+    }
+    return file.fullUrl || file.url;
+  };
+
   const filteredFiles = files.filter((f) => {
     const matchesSearch = f.filename.toLowerCase().includes(searchQuery.toLowerCase()) || f.folder.toLowerCase().includes(searchQuery.toLowerCase());
     if (!matchesSearch) return false;
@@ -470,7 +476,7 @@ export const UuassetsManager: React.FC<UuassetsManagerProps> = ({
           <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => {
-                const allLinks = filteredFiles.map((f) => f.url).join("\n");
+                const allLinks = filteredFiles.map((f) => getFullDomainUrl(f)).join("\n");
                 copyToClipboard(allLinks, `All ${filteredFiles.length} certificate links`);
               }}
               className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer"
@@ -502,7 +508,7 @@ export const UuassetsManager: React.FC<UuassetsManagerProps> = ({
                     name: cleanName || `Participant ${idx + 1}`,
                     phone: digits.length >= 7 ? digits : `+198765${1000 + idx}`,
                     email: undefined,
-                    driveUrl: file.url,
+                    driveUrl: getFullDomainUrl(file),
                     event: selectedFolder !== "all" && selectedFolder !== "root" ? selectedFolder : "General Certificate of Achievement",
                     issueDate: new Date().toISOString().split("T")[0],
                     details: `Event folder: ${file.folder || "uuassets"}`,
@@ -565,7 +571,8 @@ export const UuassetsManager: React.FC<UuassetsManagerProps> = ({
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <AnimatePresence>
             {filteredFiles.map((file) => {
-              const isCopied = copiedUrl === file.url || copiedUrl === file.fullUrl;
+              const fullDomainUrl = getFullDomainUrl(file);
+              const isCopied = copiedUrl === fullDomainUrl || copiedUrl === file.url;
 
               return (
                 <motion.div
@@ -616,22 +623,22 @@ export const UuassetsManager: React.FC<UuassetsManagerProps> = ({
                   {/* Action Buttons */}
                   <div className="pt-2 border-t border-slate-200/80 flex items-center gap-1.5 flex-wrap">
                     <button
-                      onClick={() => copyToClipboard(file.url, `Link (${file.url})`)}
+                      onClick={() => copyToClipboard(fullDomainUrl, `Full Link (${fullDomainUrl})`)}
                       className={`flex-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer ${
                         isCopied
                           ? "bg-emerald-600 text-white shadow-sm"
                           : "bg-orange-600 hover:bg-orange-700 text-white shadow-xs"
                       }`}
-                      title="Copy link to paste into Excel sheet"
+                      title={`Copy full link (${fullDomainUrl}) to paste into Excel sheet`}
                     >
                       {isCopied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                       <span>{isCopied ? "Copied!" : "Copy Link"}</span>
                     </button>
 
                     <button
-                      onClick={() => copyToClipboard(file.fullUrl, `Full URL (${file.fullUrl})`)}
+                      onClick={() => copyToClipboard(file.url, `Relative Path (${file.url})`)}
                       className="p-1.5 rounded-xl bg-slate-200/80 hover:bg-slate-300 text-slate-700 transition-all text-xs cursor-pointer"
-                      title="Copy full HTTP URL"
+                      title="Copy relative path"
                     >
                       <Link2 className="w-3.5 h-3.5 text-blue-600" />
                     </button>
@@ -648,7 +655,7 @@ export const UuassetsManager: React.FC<UuassetsManagerProps> = ({
 
                     {onSelectUrl && (
                       <button
-                        onClick={() => onSelectUrl(file.url)}
+                        onClick={() => onSelectUrl(fullDomainUrl)}
                         className="px-2.5 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold cursor-pointer"
                       >
                         Select

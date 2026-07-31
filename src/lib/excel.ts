@@ -266,18 +266,22 @@ export function exportCertificatesToExcel(records: CertificateRecord[]): void {
   XLSX.writeFile(workbook, `Certificates_Export_${new Date().toISOString().split("T")[0]}.xlsx`);
 }
 
-export function generateExcelFromUuassets(uuassetFiles: { filename: string; url: string }[]): void {
+export function generateExcelFromUuassets(uuassetFiles: { filename: string; url: string; fullUrl?: string }[]): void {
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+
   const sampleData = uuassetFiles.map((file, idx) => {
     // Clean filename for initial name guess
     const nameWithoutExt = file.filename.replace(/\.[^/.]+$/, "");
     const cleanName = nameWithoutExt.replace(/[-_]/g, " ").replace(/\d+/g, "").trim();
     const digits = nameWithoutExt.replace(/\D/g, "");
 
+    const fullLink = file.fullUrl || (origin ? `${origin}${file.url}` : file.url);
+
     return {
       "Full Name": cleanName || `Participant ${idx + 1}`,
       "Phone Number": digits.length >= 7 ? digits : "",
       "Email Address": "",
-      "Certificate Drive Link": file.url,
+      "Certificate Drive Link": fullLink,
       "Event Name": "General Certificate of Achievement",
       "Issue Date": new Date().toISOString().split("T")[0],
       "Details": "Bulk Uploaded Certificate Asset",
@@ -288,7 +292,7 @@ export function generateExcelFromUuassets(uuassetFiles: { filename: string; url:
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "Bulk uuassets Links");
 
-  const maxWidths = [25, 18, 25, 45, 35, 15, 30];
+  const maxWidths = [25, 18, 25, 60, 35, 15, 30];
   worksheet["!cols"] = maxWidths.map((w) => ({ wch: w }));
 
   XLSX.writeFile(workbook, `Bulk_uuassets_Certificates_Template_${new Date().toISOString().split("T")[0]}.xlsx`);
