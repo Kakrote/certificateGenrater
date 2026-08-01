@@ -21,4 +21,7 @@ services:
 
     volumes:
       - ./prisma:/app/prisma
-      - ./public/uuassets:/app/public/uuassets
+      - uuassets_data:/app/public/uuassets
+
+volumes:
+  uuassets_data:
