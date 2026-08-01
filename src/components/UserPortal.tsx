@@ -3,19 +3,15 @@
 import React, { useState, useEffect } from "react";
 import { CertificateRecord } from "@/lib/types";
 import {
-  fetchCertificatesFromApi,
   findCertificateByQueryApi,
-  findCertificateByPhoneApi,
   incrementCertificateDownloadApi,
   recordLookupEvent,
-  INITIAL_CERTIFICATES,
 } from "@/lib/store";
 import { CertificatePreview } from "./CertificatePreview";
 import { CertificateCorrectionSection } from "./CertificateCorrectionSection";
 import { useToast } from "./Toast";
 import {
   Search,
-  PhoneCall,
   CheckCircle2,
   AlertTriangle,
   ShieldCheck,
@@ -29,15 +25,6 @@ export const UserPortal: React.FC = () => {
   const [searching, setSearching] = useState(false);
   const [foundCertificate, setFoundCertificate] = useState<CertificateRecord | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
-  const [records, setRecords] = useState<CertificateRecord[]>(INITIAL_CERTIFICATES);
-
-  useEffect(() => {
-    fetchCertificatesFromApi().then((data) => {
-      if (data && Array.isArray(data.certificates) && data.certificates.length > 0) {
-        setRecords(data.certificates);
-      }
-    }).catch(() => {});
-  }, []);
 
   // Check URL parameters for direct phone or email or query search (e.g. ?query=7018321825 or ?email=user@domain.com)
   useEffect(() => {
@@ -101,20 +88,11 @@ export const UserPortal: React.FC = () => {
   const handleDownload = async () => {
     if (foundCertificate) {
       const updated = await incrementCertificateDownloadApi(foundCertificate.id);
-      setRecords(updated);
       const refreshed = updated.find((c) => c.id === foundCertificate.id);
       if (refreshed) {
         setFoundCertificate(refreshed);
       }
     }
-  };
-
-  const handleQuickChip = (e: React.MouseEvent<HTMLButtonElement>, queryVal: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setSearchQuery(queryVal);
-    setFoundCertificate(null);
-    handleSearch(queryVal);
   };
 
   return (
@@ -187,25 +165,6 @@ export const UserPortal: React.FC = () => {
               )}
             </button>
           </div>
-
-          {/* Quick Test Chips */}
-          {/* <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
-            <span className="text-xs text-slate-500 font-medium">Quick Test Search:</span>
-            {(records.length > 0 ? records : INITIAL_CERTIFICATES).slice(0, 4).map((rec) => {
-              const chipVal = rec.phone || rec.email || rec.name;
-              return (
-                <button
-                  key={rec.id}
-                  type="button"
-                  onClick={(e) => handleQuickChip(e, chipVal)}
-                  className="text-xs px-3 py-1.5 rounded-full bg-orange-50 hover:bg-orange-100 text-orange-900 border border-orange-200 transition-all font-mono cursor-pointer font-medium active:scale-95 flex items-center gap-1"
-                >
-                  <span>{chipVal}</span>
-                  <span className="text-[10px] text-blue-700 font-sans">({rec.name})</span>
-                </button>
-              );
-            })}
-          </div> */}
         </form>
       </div>
 
