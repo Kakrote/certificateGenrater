@@ -330,15 +330,6 @@ export const AdminDashboard: React.FC = () => {
     const certIdsToDelete = selectedRecords.map((c) => c.certificateId);
     const allQueryIds = Array.from(new Set([...idsToDelete, ...certIdsToDelete]));
 
-    // 1. Immediately remove selected items from local state & localStorage
-    const filtered = certificates.filter(
-      (c) => !idsToDelete.includes(c.id) && !certIdsToDelete.includes(c.certificateId)
-    );
-    setCertificates(filtered);
-    saveStoredCertificates(filtered);
-    setSelectedCertIds([]);
-
-    // 2. Call backend API to delete from database
     try {
       const res = await fetch(`/api/certificates?ids=${encodeURIComponent(allQueryIds.join(","))}`, {
         method: "DELETE",
@@ -349,11 +340,13 @@ export const AdminDashboard: React.FC = () => {
 
       if (json.success) {
         showToast("Records Deleted", `Successfully removed ${selectedRecords.length} certificate record(s).`, "info");
+        setSelectedCertIds((prev) => prev.filter((id) => !idsToDelete.includes(id)));
+        await loadData();
       } else {
-        showToast("Delete Notice", json.error || "Deleted records locally.", "info");
+        showToast("Delete Failed", json.error || "Could not delete selected certificate records.", "error");
       }
     } catch {
-      showToast("Records Deleted", `Removed ${selectedRecords.length} certificate record(s).`, "info");
+      showToast("Delete Failed", "Failed to communicate with the certificate database.", "error");
     }
   };
 

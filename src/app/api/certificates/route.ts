@@ -354,17 +354,40 @@ export async function DELETE(request: Request) {
     if (idsToDelete.length > 0) {
       let deletedCount = 0;
       try {
-        const res = await db.certificate.deleteMany({
+        const matchedRecords = await db.certificate.findMany({
           where: {
             OR: [
               { id: { in: idsToDelete } },
               { certificateId: { in: idsToDelete } },
             ],
           },
+          select: { id: true },
+        });
+
+        if (matchedRecords.length === 0) {
+          return NextResponse.json(
+            { success: false, error: "No matching certificate records were found to delete." },
+            { status: 404 }
+          );
+        }
+
+        const res = await db.certificate.deleteMany({
+          where: { id: { in: matchedRecords.map((record) => record.id) } },
         });
         deletedCount = res.count;
       } catch (err) {
         console.warn("Delete DB error:", err);
+        return NextResponse.json(
+          { success: false, error: "Failed to delete certificate records from the database." },
+          { status: 500 }
+        );
+      }
+
+      if (deletedCount === 0) {
+        return NextResponse.json(
+          { success: false, error: "No certificate records were deleted." },
+          { status: 500 }
+        );
       }
 
       return NextResponse.json({
