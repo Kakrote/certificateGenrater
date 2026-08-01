@@ -50,7 +50,7 @@ async function main() {
           },
         });
       }
-      console.log("Database successfully seeded with 597 records!");
+      console.log(`Database successfully seeded with ${testingData.length} records!`);
     } else {
       console.log(`Database already initialized with ${count} records.`);
     }
