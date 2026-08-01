@@ -1,17 +1,17 @@
+require("dotenv/config");
 const { PrismaClient } = require("@prisma/client");
-const { PrismaBetterSqlite3 } = require("@prisma/adapter-better-sqlite3");
-const path = require("path");
-const fs = require("fs");
+const { PrismaPg } = require("@prisma/adapter-pg");
+const pg = require("pg");
 
 const testingData = require("../src/lib/testingData.json");
 
-const prismaDir = path.resolve(process.cwd(), "prisma");
-if (!fs.existsSync(prismaDir)) {
-  fs.mkdirSync(prismaDir, { recursive: true });
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  throw new Error("DATABASE_URL is required for seed");
 }
 
-const dbPath = path.resolve(prismaDir, "dev.db");
-const adapter = new PrismaBetterSqlite3({ url: `file:${dbPath}` });
+const pool = new pg.Pool({ connectionString });
+const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 function extractEmailFromDetails(details, explicitEmail) {
@@ -30,11 +30,11 @@ async function main() {
       return;
     }
 
-    console.log("Checking SQLite database seeding status...");
+    console.log("Checking PostgreSQL database seeding status...");
     const count = await prisma.certificate.count().catch(() => 0);
 
     if (count <= 10) {
-      console.log(`Seeding ${testingData.length} records from test.xlsx into SQLite DB...`);
+      console.log(`Seeding ${testingData.length} records from test.xlsx into PostgreSQL DB...`);
       await prisma.certificate.deleteMany({}).catch(() => {});
 
       for (const cert of testingData) {
@@ -63,6 +63,7 @@ async function main() {
     console.error("Seeding warning:", e);
   } finally {
     await prisma.$disconnect();
+    await pool.end();
   }
 }
 

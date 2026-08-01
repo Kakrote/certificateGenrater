@@ -1,24 +1,21 @@
 import { PrismaClient } from "@prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-import path from "path";
-import fs from "fs";
+import { PrismaPg } from "@prisma/adapter-pg";
+import pg from "pg";
 import testingData from "./testingData.json";
 import { CertificateRecord } from "./types";
 
-// Ensure prisma directory exists for SQLite
-const prismaDir = path.resolve(process.cwd(), "prisma");
-if (!fs.existsSync(prismaDir)) {
-  try {
-    fs.mkdirSync(prismaDir, { recursive: true });
-  } catch (e) {
-    console.warn("Could not create prisma directory:", e);
-  }
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+  throw new Error("DATABASE_URL is required");
 }
 
-const dbPath = path.resolve(prismaDir, "dev.db");
-const adapter = new PrismaBetterSqlite3({ url: `file:${dbPath}` });
+const globalForPrisma = globalThis as unknown as {
+  prisma?: PrismaClient;
+  prismaPool?: pg.Pool;
+};
 
-const globalForPrisma = global as unknown as { prisma: PrismaClient };
+const pool = globalForPrisma.prismaPool || new pg.Pool({ connectionString });
+const adapter = new PrismaPg(pool);
 
 export const db =
   globalForPrisma.prisma ||
@@ -27,9 +24,12 @@ export const db =
     log: process.env.NODE_ENV === "development" ? ["query", "error", "warn"] : ["error"],
   });
 
-if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db;
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = db;
+  globalForPrisma.prismaPool = pool;
+}
 
-// Self-healing DB initializer for production
+// Self-healing DB initializer for the first startup
 let isInitialized = false;
 const shouldSeedSampleData = process.env.NODE_ENV !== "production" || process.env.SEED_SAMPLE_DATA === "true";
 
@@ -45,55 +45,13 @@ export function extractEmailFromDetails(details?: string, explicitEmail?: string
 export async function initializeDatabaseIfNeeded() {
   if (isInitialized) return;
   try {
-    // Ensure SQLite schema tables exist
-    await db.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS "Certificate" (
-        "id" TEXT NOT NULL PRIMARY KEY,
-        "certificateId" TEXT NOT NULL UNIQUE,
-        "name" TEXT NOT NULL,
-        "phone" TEXT NOT NULL,
-        "cleanPhone" TEXT NOT NULL,
-        "email" TEXT,
-        "driveUrl" TEXT NOT NULL,
-        "event" TEXT NOT NULL,
-        "issueDate" TEXT NOT NULL,
-        "details" TEXT,
-        "downloads" INTEGER NOT NULL DEFAULT 0,
-        "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP
-      );
-    `);
-
-    try {
-      await db.$executeRawUnsafe(`ALTER TABLE "Certificate" ADD COLUMN "email" TEXT;`);
-    } catch {
-      // Ignore if email column already exists
-    }
-
-    await db.$executeRawUnsafe(`
-      CREATE TABLE IF NOT EXISTS "SystemStat" (
-        "key" TEXT NOT NULL PRIMARY KEY,
-        "value" INTEGER NOT NULL DEFAULT 0
-      );
-    `);
-
-    await db.$executeRawUnsafe(`
-      CREATE INDEX IF NOT EXISTS "Certificate_cleanPhone_idx" ON "Certificate"("cleanPhone");
-    `);
-
-    await db.$executeRawUnsafe(`
-      CREATE INDEX IF NOT EXISTS "Certificate_phone_idx" ON "Certificate"("phone");
-    `);
-
-    await db.$executeRawUnsafe(`
-      CREATE INDEX IF NOT EXISTS "Certificate_email_idx" ON "Certificate"("email");
-    `);
+    await db.$connect();
 
     const seedStat = await db.systemStat.findUnique({ where: { key: "isSeeded" } }).catch(() => null);
     if (!seedStat) {
       const count = await db.certificate.count().catch(() => 0);
       if (shouldSeedSampleData && count === 0 && Array.isArray(testingData) && testingData.length > 0) {
-        console.log(`Initial seeding ${testingData.length} records into SQLite database...`);
+        console.log(`Initial seeding ${testingData.length} records into PostgreSQL database...`);
         for (const cert of testingData as CertificateRecord[]) {
           const extractedEmail = extractEmailFromDetails(cert.details, cert.email);
           await db.certificate.upsert({

@@ -26,7 +26,7 @@
 - **Framework:** [Next.js 16](https://nextjs.org/) (App Router)
 - **Frontend:** React 19, TypeScript, Tailwind CSS, [Framer Motion](https://www.framer.com/motion/)
 - **Icons & Effects:** [Lucide React](https://lucide.dev/), Canvas Confetti
-- **Database & ORM:** [Prisma ORM](https://www.prisma.io/) with SQLite (`better-sqlite3`)
+- **Database & ORM:** [Prisma ORM](https://www.prisma.io/) with PostgreSQL
 - **Excel Processing:** XLSX (`xlsx`)
 - **Containerization:** Docker & Docker Compose
 
@@ -52,14 +52,12 @@
    ```
 
 3. **Configure Environment Variables:**
-   Create a `.env` file in the root directory:
-   ```env
-   DATABASE_URL="file:./dev.db"
-   ```
+   Create a `.env` file in the root directory and set `DATABASE_URL` to your PostgreSQL connection string.
 
 4. **Initialize Database:**
+   Run Prisma migrations against your PostgreSQL database:
    ```bash
-   npx prisma db push
+   npx prisma migrate deploy
    ```
 
 5. **Run the Development Server:**

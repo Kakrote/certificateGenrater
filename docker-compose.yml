@@ -1,4 +1,20 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: certipulse_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: certipulse
+      POSTGRES_USER: certipulse
+      POSTGRES_PASSWORD: certipulse
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U certipulse -d certipulse"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
   certipulse:
     build:
       context: .
@@ -8,10 +24,15 @@ services:
 
     restart: unless-stopped
 
+    depends_on:
+      postgres:
+        condition: service_healthy
+
     environment:
       - NODE_ENV=production
       - PORT=3000
       - HOSTNAME=0.0.0.0
+      - DATABASE_URL=postgresql://certipulse:certipulse@postgres:5432/certipulse?schema=public
 
     ports:
       - "3000:3000"
@@ -20,9 +41,8 @@ services:
       - .env
 
     volumes:
-      - prisma_data:/app/prisma
       - uuassets_data:/app/public/uuassets
 
 volumes:
-  prisma_data:
+  postgres_data:
   uuassets_data:
