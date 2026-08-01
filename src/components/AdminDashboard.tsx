@@ -356,10 +356,10 @@ export const AdminDashboard: React.FC = () => {
 
   // Reset to testingData
   const handleResetDemoData = async () => {
-    if (confirm("Reset dataset back to testing.xlsx records?")) {
+    if (confirm("Reset dataset back to test.xlsx records?")) {
       setCertificates(INITIAL_CERTIFICATES);
       saveStoredCertificates(INITIAL_CERTIFICATES);
-      showToast("Data Reset", "Restored testing.xlsx dataset.", "info");
+      showToast("Data Reset", "Restored test.xlsx dataset.", "info");
     }
   };
 
@@ -654,7 +654,7 @@ export const AdminDashboard: React.FC = () => {
             className="text-xs text-slate-500 hover:text-slate-800 flex items-center gap-1.5 self-end sm:self-auto cursor-pointer font-medium"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            Reset to testing.xlsx Records
+            Reset to test.xlsx Records
           </button>
         </div>
 

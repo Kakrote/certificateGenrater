@@ -43,28 +43,34 @@ export function parseExcelOrCsvFile(file: File): Promise<CertificateRecord[]> {
         // 1. Read row objects from worksheet
         const rawObjRows = XLSX.utils.sheet_to_json<Record<string, any>>(worksheet, { defval: "" });
 
+        const certificateIdAliases = ["certificateno", "certificatenumber", "certificateid", "certno", "certid"];
+        const participantTypeAliases = ["participanttype", "participant", "participantcategory"];
         const nameAliases = [
           "fullname", "name", "recipientname", "studentname", "participantname",
           "username", "personname", "clientname", "candidate", "candidatename", "user", "student"
         ];
 
+        const designationAliases = ["programdesignation", "designation", "program", "event", "coursename", "eventname", "title", "topic"];
+        const institutionAliases = ["institution", "organization", "organisation", "university", "college", "company"];
+
         const phoneAliases = [
           "phonenumber", "phone", "mobilenumber", "mobile", "contactnumber",
-          "contact", "phoneno", "mobileno", "cell", "telephone", "phone#", "mobile#", "number"
+          "contact", "phoneno", "mobileno", "cell", "telephone", "phone#", "mobile#", "number", "mobileno."
         ];
 
         const emailAliases = [
           "emailaddress", "email", "mail", "e-mail", "emailid", "useremail", "studentemail", "contactemail"
         ];
 
+        const countryAliases = ["country"];
+        const stateAliases = ["state", "province"];
+        const districtAliases = ["district", "city", "town"];
+        const genderAliases = ["gender", "sex"];
+
         const driveAliases = [
           "certificatedrivelink", "drivelink", "driveurl", "url", "link",
           "certificatelink", "drive", "googledrivelink", "fileurl", "filelink", "drivefile",
           "uuassets", "uuassetslink", "uuassetsurl", "uuasset", "certificatelocation", "asseturl"
-        ];
-
-        const eventAliases = [
-          "eventname", "coursename", "event", "course", "program", "workshop", "title", "batch", "topic"
         ];
 
         const dateAliases = ["issuedate", "date", "dateofissue", "issued"];
@@ -80,12 +86,35 @@ export function parseExcelOrCsvFile(file: File): Promise<CertificateRecord[]> {
           if (allRowValues.length === 0) continue;
 
           let name = getColumnValue(row, nameAliases);
+          const certificateId = getColumnValue(row, certificateIdAliases);
+          const participantType = getColumnValue(row, participantTypeAliases);
+          const designation = getColumnValue(row, designationAliases);
+          const institution = getColumnValue(row, institutionAliases);
+          const country = getColumnValue(row, countryAliases);
+          const state = getColumnValue(row, stateAliases);
+          const district = getColumnValue(row, districtAliases);
+          const gender = getColumnValue(row, genderAliases);
           let phone = getColumnValue(row, phoneAliases);
           let email = getColumnValue(row, emailAliases);
           let driveUrl = getColumnValue(row, driveAliases);
-          let event = getColumnValue(row, eventAliases);
+          let event = designation || participantType || getColumnValue(row, ["eventname", "event", "course", "program", "workshop", "title", "batch", "topic"]);
           let issueDate = getColumnValue(row, dateAliases);
           let details = getColumnValue(row, detailsAliases);
+
+          const structuredDetails = [
+            participantType,
+            institution,
+            country,
+            state,
+            district,
+            gender,
+          ].filter(Boolean);
+
+          if (!details && structuredDetails.length > 0) {
+            details = structuredDetails.join(" | ");
+          } else if (details && structuredDetails.length > 0) {
+            details = `${details} | ${structuredDetails.join(" | ")}`;
+          }
 
           // Smart auto-discovery for missing fields:
           // 1. If email was not matched by key, search for @ in row values
@@ -136,12 +165,12 @@ export function parseExcelOrCsvFile(file: File): Promise<CertificateRecord[]> {
 
           parsedRecords.push({
             id: `cert_upload_${Date.now()}_${index}`,
-            certificateId: `CERT-2026-${randomSuffix}`,
+            certificateId: certificateId || `CERT-2026-${randomSuffix}`,
             name: name.trim(),
             phone: phone ? phone.trim() : "",
             email: email ? email.trim().toLowerCase() : undefined,
             driveUrl: driveUrl.trim() || "https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/view",
-            event: event.trim() || "Certificate of Excellence",
+            event: event.trim() || participantType.trim() || "Certificate of Excellence",
             issueDate: issueDate.trim() || new Date().toISOString().split("T")[0],
             details: details.trim() || "Successfully completed program requirements.",
             downloads: 0,
@@ -165,22 +194,30 @@ export function parseExcelOrCsvFile(file: File): Promise<CertificateRecord[]> {
           const c1 = String(row[1] || "").trim();
           const c2 = String(row[2] || "").trim();
           const c3 = String(row[3] || "").trim();
+          const c4 = String(row[4] || "").trim();
+          const c5 = String(row[5] || "").trim();
+          const c6 = String(row[6] || "").trim();
+          const c7 = String(row[7] || "").trim();
+          const c8 = String(row[8] || "").trim();
+          const c9 = String(row[9] || "").trim();
+          const c10 = String(row[10] || "").trim();
+          const c11 = String(row[11] || "").trim();
+          const c12 = String(row[12] || "").trim();
 
-          // Skip if header row
-          if (i === 0 && (c0.toLowerCase().includes("name") || c1.toLowerCase().includes("phone") || c1.toLowerCase().includes("email"))) continue;
+          if (i === 0 && (c0.toLowerCase().includes("s.no") || c1.toLowerCase().includes("certificate no"))) continue;
 
-          if (c0 || c1) {
-            const isC1Email = c1.includes("@");
+          if (c0 || c1 || c3) {
+            const structuredDetails = [c2, c5, c8, c9, c10, c11].filter(Boolean).join(" | ");
             fallbackRecords.push({
               id: `cert_upload_2d_${Date.now()}_${i}`,
-              certificateId: `CERT-2026-${Math.floor(1000 + Math.random() * 9000)}`,
-              name: c0 || `Participant ${i}`,
-              phone: !isC1Email ? (c1 || `+19876543${100 + i}`) : "",
-              email: isC1Email ? c1.toLowerCase() : undefined,
-              driveUrl: c2 || "https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/view",
-              event: c3 || "Certificate of Excellence",
+              certificateId: c1 || `CERT-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+              name: c3 || `Participant ${i}`,
+              phone: c6 || `+19876543${100 + i}`,
+              email: c7 ? c7.toLowerCase() : undefined,
+              driveUrl: c12 || "https://drive.google.com/file/d/1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms/view",
+              event: c4 || c2 || "Certificate of Excellence",
               issueDate: new Date().toISOString().split("T")[0],
-              details: "Program completion",
+              details: structuredDetails || "Program completion",
               downloads: 0,
               createdAt: new Date().toISOString(),
             });
@@ -206,43 +243,61 @@ export function parseExcelOrCsvFile(file: File): Promise<CertificateRecord[]> {
 export function generateSampleExcelFile(): void {
   const sampleData = [
     {
-      "Full Name": "Johnathan Doe",
-      "Phone Number": "+19876543210",
-      "Email Address": "johnathan.doe@example.com",
-      "Certificate Drive Link": "/uuassets/certificate_john_doe.jpg",
-      "Event Name": "Next.js Full-Stack Masterclass 2026",
-      "Issue Date": "2026-07-20",
-      "Details": "Grade A+ (Distinction in React 19 & Server Actions)",
+      "S.No.": 1,
+      "Certificate No.": "UU/IQAC/AIIW/2026/001",
+      "Participant Type": "UU Faculty",
+      Name: "Mr. Abhishek Kumar Pathak",
+      "Program / Designation": "ASSISTANT DIRECTOR, CDOE",
+      Institution: "UTTARANCHAL UNIVERSITY",
+      "Mobile No": "7055452916",
+      Email: "pathak4uu@gmail.com",
+      Country: "India",
+      State: "West Bengal",
+      District: "Kolkata",
+      Gender: "Male",
+      Link: "https://certipulse.uudoon.in/api/uuassets?path=HBWCP2026%2FHBWPC--1.jpg",
     },
     {
-      "Full Name": "Sarah Jenkins",
-      "Phone Number": "",
-      "Email Address": "sarah.jenkins@example.com",
-      "Certificate Drive Link": "https://drive.google.com/file/d/1v8T-vWp3mH9zZ1Xn3lXn3lXn3lXn3lXn/view",
-      "Event Name": "AI Systems & Microservices Hackathon",
-      "Issue Date": "2026-07-15",
-      "Details": "Best Backend Architecture Award",
+      "S.No.": 2,
+      "Certificate No.": "UU/IQAC/AIIW/2026/002",
+      "Participant Type": "UU Faculty",
+      Name: "Dr. Babita Rawat",
+      "Program / Designation": "PROFESSOR",
+      Institution: "UTTARANCHAL UNIVERSITY",
+      "Mobile No": "9927921114",
+      Email: "babitarawat464@gmail.com",
+      Country: "India",
+      State: "Uttarakhand",
+      District: "Dehradun",
+      Gender: "Female",
+      Link: "https://certipulse.uudoon.in/api/uuassets?path=HBWCP2026%2FHBWPC--2.jpg",
     },
     {
-      "Full Name": "Aarav Patel",
-      "Phone Number": "+919876543210",
-      "Email Address": "aarav.patel@example.com",
-      "Certificate Drive Link": "/uuassets/certificate_aarav_patel.pdf",
-      "Event Name": "Global Cloud & DevOps Conference",
-      "Issue Date": "2026-06-30",
-      "Details": "Certified Cloud Solutions Architect",
+      "S.No.": 3,
+      "Certificate No.": "UU/IQAC/AIIW/2026/003",
+      "Participant Type": "UU Faculty",
+      Name: "Dr. Example User",
+      "Program / Designation": "ASSOCIATE PROFESSOR",
+      Institution: "UTTARANCHAL UNIVERSITY",
+      "Mobile No": "9876543210",
+      Email: "example.user@utt.edu",
+      Country: "India",
+      State: "Uttarakhand",
+      District: "Dehradun",
+      Gender: "Female",
+      Link: "https://certipulse.uudoon.in/api/uuassets?path=HBWCP2026%2FHBWPC--3.jpg",
     },
   ];
 
   const worksheet = XLSX.utils.json_to_sheet(sampleData);
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Certificates");
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Sheet1");
 
   // Auto-width columns
-  const maxWidths = [20, 18, 25, 50, 35, 15, 40];
+  const maxWidths = [8, 22, 18, 28, 30, 28, 14, 28, 12, 18, 16, 12, 58];
   worksheet["!cols"] = maxWidths.map((w) => ({ wch: w }));
 
-  XLSX.writeFile(workbook, "Sample_Certificate_Distribution_Template.xlsx");
+  XLSX.writeFile(workbook, "test.xlsx");
 }
 
 export function exportCertificatesToExcel(records: CertificateRecord[]): void {
