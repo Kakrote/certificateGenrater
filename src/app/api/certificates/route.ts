@@ -6,6 +6,7 @@ import { CertificateRecord } from "@/lib/types";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 export const maxDuration = 300;
+const shouldUseSampleData = process.env.NODE_ENV !== "production";
 
 function findInDataset(query: string): CertificateRecord | null {
   if (!query || !query.trim()) return null;
@@ -146,10 +147,12 @@ export async function GET(request: Request) {
         console.warn("DB search fallback to JSON:", dbErr);
       }
 
-      // Memory fallback
-      const match = findInDataset(cleanQuery);
-      if (match) {
-        return NextResponse.json({ success: true, certificate: match });
+      if (shouldUseSampleData) {
+        // Memory fallback for development only
+        const match = findInDataset(cleanQuery);
+        if (match) {
+          return NextResponse.json({ success: true, certificate: match });
+        }
       }
 
       return NextResponse.json(
@@ -174,18 +177,28 @@ export async function GET(request: Request) {
       console.warn("DB list fallback to JSON:", dbErr);
     }
 
+    if (shouldUseSampleData) {
+      return NextResponse.json({
+        success: true,
+        certificates: testingData,
+        totalLookups: 0,
+      });
+    }
+
     return NextResponse.json({
-      success: true,
-      certificates: testingData,
-      totalLookups: 597,
-    });
+      success: false,
+      error: "Failed to load certificates from the database.",
+    }, { status: 500 });
   } catch (error) {
     console.error("GET /api/certificates error:", error);
-    return NextResponse.json({
-      success: true,
-      certificates: testingData,
-      totalLookups: 597,
-    });
+    if (shouldUseSampleData) {
+      return NextResponse.json({
+        success: true,
+        certificates: testingData,
+        totalLookups: 0,
+      });
+    }
+    return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
   }
 }
 

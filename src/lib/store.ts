@@ -2,7 +2,9 @@ import { CertificateRecord } from "./types";
 import { cleanPhoneNumber } from "./drive";
 import testingData from "./testingData.json";
 
-export const INITIAL_CERTIFICATES: CertificateRecord[] = testingData as CertificateRecord[];
+const shouldUseSampleData = process.env.NODE_ENV !== "production";
+
+export const INITIAL_CERTIFICATES: CertificateRecord[] = shouldUseSampleData ? (testingData as CertificateRecord[]) : [];
 
 const LOCAL_STORAGE_KEY = "certipulse_certificates_v3";
 const LOOKUPS_KEY = "certipulse_total_lookups_v1";
@@ -12,13 +14,14 @@ export function getStoredCertificates(): CertificateRecord[] {
   try {
     const data = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (data === null) {
+      if (!shouldUseSampleData) return [];
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(INITIAL_CERTIFICATES));
       return INITIAL_CERTIFICATES;
     }
     const parsed = JSON.parse(data);
-    return Array.isArray(parsed) ? parsed : INITIAL_CERTIFICATES;
+    return Array.isArray(parsed) ? parsed : (shouldUseSampleData ? INITIAL_CERTIFICATES : []);
   } catch {
-    return INITIAL_CERTIFICATES;
+    return shouldUseSampleData ? INITIAL_CERTIFICATES : [];
   }
 }
 
@@ -51,16 +54,21 @@ export async function fetchCertificatesFromApi(): Promise<{ certificates: Certif
   } catch (e) {
     console.warn("API fetch timeout or error, using local dataset", e);
   }
-  return { certificates: getStoredCertificates(), totalLookups: getLookupCount() };
+  if (shouldUseSampleData) {
+    return { certificates: getStoredCertificates(), totalLookups: getLookupCount() };
+  }
+  return { certificates: [], totalLookups: 0 };
 }
 
 export async function findCertificateByQueryApi(query: string): Promise<CertificateRecord | null> {
   if (!query || !query.trim()) return null;
   const cleanQuery = query.trim();
 
-  // 1. Try local instant search first for 0ms response time
-  const localList = getStoredCertificates();
-  const instantMatch = findCertificateByQuery(cleanQuery, localList) || findCertificateByQuery(cleanQuery, INITIAL_CERTIFICATES);
+  // 1. Try local instant search first for 0ms response time in development only
+  const localList = shouldUseSampleData ? getStoredCertificates() : [];
+  const instantMatch = shouldUseSampleData
+    ? (findCertificateByQuery(cleanQuery, localList) || findCertificateByQuery(cleanQuery, INITIAL_CERTIFICATES))
+    : null;
 
   try {
     const controller = new AbortController();
@@ -76,7 +84,7 @@ export async function findCertificateByQueryApi(query: string): Promise<Certific
       }
     }
   } catch {
-    // Silent catch, fallback to instantMatch
+    // Silent catch, fallback only in development
   }
 
   return instantMatch;
@@ -199,22 +207,22 @@ export function incrementCertificateDownload(id: string): CertificateRecord[] {
 }
 
 export function recordLookupEvent(): number {
-  if (typeof window === "undefined") return 597;
+  if (typeof window === "undefined") return 0;
   try {
-    const val = parseInt(localStorage.getItem(LOOKUPS_KEY) || "597", 10);
+    const val = parseInt(localStorage.getItem(LOOKUPS_KEY) || "0", 10);
     const nextVal = val + 1;
     localStorage.setItem(LOOKUPS_KEY, nextVal.toString());
     return nextVal;
   } catch {
-    return 598;
+    return 0;
   }
 }
 
 export function getLookupCount(): number {
-  if (typeof window === "undefined") return 597;
+  if (typeof window === "undefined") return 0;
   try {
-    return parseInt(localStorage.getItem(LOOKUPS_KEY) || "597", 10);
+    return parseInt(localStorage.getItem(LOOKUPS_KEY) || "0", 10);
   } catch {
-    return 597;
+    return 0;
   }
 }

@@ -31,6 +31,7 @@ if (process.env.NODE_ENV !== "production") globalForPrisma.prisma = db;
 
 // Self-healing DB initializer for production
 let isInitialized = false;
+const shouldSeedSampleData = process.env.NODE_ENV !== "production" || process.env.SEED_SAMPLE_DATA === "true";
 
 export function extractEmailFromDetails(details?: string, explicitEmail?: string): string | null {
   if (explicitEmail && explicitEmail.trim()) {
@@ -91,7 +92,7 @@ export async function initializeDatabaseIfNeeded() {
     const seedStat = await db.systemStat.findUnique({ where: { key: "isSeeded" } }).catch(() => null);
     if (!seedStat) {
       const count = await db.certificate.count().catch(() => 0);
-      if (count === 0 && Array.isArray(testingData) && testingData.length > 0) {
+      if (shouldSeedSampleData && count === 0 && Array.isArray(testingData) && testingData.length > 0) {
         console.log(`Initial seeding ${testingData.length} records into SQLite database...`);
         for (const cert of testingData as CertificateRecord[]) {
           const extractedEmail = extractEmailFromDetails(cert.details, cert.email);

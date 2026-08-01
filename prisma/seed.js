@@ -25,6 +25,11 @@ function extractEmailFromDetails(details, explicitEmail) {
 
 async function main() {
   try {
+    if (process.env.NODE_ENV === "production" && process.env.SEED_SAMPLE_DATA !== "true") {
+      console.log("Skipping sample seed in production.");
+      return;
+    }
+
     console.log("Checking SQLite database seeding status...");
     const count = await prisma.certificate.count().catch(() => 0);
 
