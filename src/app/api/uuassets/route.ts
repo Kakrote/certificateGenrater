@@ -11,16 +11,12 @@ const UUASSETS_DIR = path.join(process.cwd(), "public", "uuassets");
 
 // Helper to ensure base public/uuassets directory exists
 async function ensureUuassetsDir(subfolder?: string) {
-  try {
-    await fs.mkdir(UUASSETS_DIR, { recursive: true });
-    if (subfolder && subfolder.trim()) {
-      const cleanSub = sanitizeName(subfolder);
-      const targetDir = path.join(UUASSETS_DIR, cleanSub);
-      await fs.mkdir(targetDir, { recursive: true });
-      return targetDir;
-    }
-  } catch {
-    // Directory already exists or created
+  await fs.mkdir(UUASSETS_DIR, { recursive: true });
+  if (subfolder && subfolder.trim()) {
+    const cleanSub = sanitizeName(subfolder);
+    const targetDir = path.join(UUASSETS_DIR, cleanSub);
+    await fs.mkdir(targetDir, { recursive: true });
+    return targetDir;
   }
   return UUASSETS_DIR;
 }
@@ -269,6 +265,17 @@ export async function DELETE(request: Request) {
         } catch {
           failedFiles.push(safeFilename);
         }
+      }
+
+      if (deletedCount === 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: failedFiles.length > 0 ? `Failed to delete ${failedFiles.length} file(s).` : "No files were deleted.",
+            failedFiles,
+          },
+          { status: 500 }
+        );
       }
 
       return NextResponse.json({
