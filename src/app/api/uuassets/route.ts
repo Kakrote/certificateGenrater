@@ -29,6 +29,8 @@ function getSafeAssetPath(assetPath: string): string | null {
   return resolved;
 }
 
+
+
 // Helper to ensure base public/uuassets directory exists
 async function ensureUuassetsDir(subfolder?: string) {
   await fs.mkdir(UUASSETS_DIR, { recursive: true });
