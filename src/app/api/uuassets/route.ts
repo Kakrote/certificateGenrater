@@ -9,6 +9,26 @@ export const maxDuration = 300;
 
 const UUASSETS_DIR = path.join(process.cwd(), "public", "uuassets");
 
+function getContentType(filename: string): string {
+  const ext = path.extname(filename).toLowerCase();
+  if (ext === ".jpg" || ext === ".jpeg") return "image/jpeg";
+  if (ext === ".png") return "image/png";
+  if (ext === ".webp") return "image/webp";
+  if (ext === ".gif") return "image/gif";
+  if (ext === ".svg") return "image/svg+xml";
+  if (ext === ".pdf") return "application/pdf";
+  return "application/octet-stream";
+}
+
+function getSafeAssetPath(assetPath: string): string | null {
+  const normalized = path.normalize(assetPath).replace(/^([/\\])+/, "");
+  const resolved = path.resolve(UUASSETS_DIR, normalized);
+  if (!resolved.startsWith(UUASSETS_DIR + path.sep) && resolved !== UUASSETS_DIR) {
+    return null;
+  }
+  return resolved;
+}
+
 // Helper to ensure base public/uuassets directory exists
 async function ensureUuassetsDir(subfolder?: string) {
   await fs.mkdir(UUASSETS_DIR, { recursive: true });
@@ -39,7 +59,8 @@ async function getFileDetails(filePath: string, folderRelative: string, filename
     const isImage = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg"].includes(ext);
     const isPdf = ext === ".pdf";
 
-    const relativeUrlPath = folderRelative ? `/uuassets/${folderRelative}/${filename}` : `/uuassets/${filename}`;
+    const assetPath = folderRelative ? `${folderRelative}/${filename}` : filename;
+    const relativeUrlPath = `/api/uuassets?path=${encodeURIComponent(assetPath)}`;
 
     return {
       filename,
@@ -62,7 +83,34 @@ export async function GET(request: Request) {
     await ensureUuassetsDir();
     const origin = new URL(request.url).origin;
     const { searchParams } = new URL(request.url);
+    const requestedPath = searchParams.get("path");
     const requestedFolder = searchParams.get("folder");
+
+    if (requestedPath) {
+      const safePath = getSafeAssetPath(requestedPath);
+      if (!safePath) {
+        return NextResponse.json({ success: false, error: "Invalid asset path" }, { status: 400 });
+      }
+
+      try {
+        const stat = await fs.stat(safePath);
+        if (!stat.isFile()) {
+          return NextResponse.json({ success: false, error: "Asset not found" }, { status: 404 });
+        }
+
+        const fileBuffer = await fs.readFile(safePath);
+        return new NextResponse(fileBuffer, {
+          status: 200,
+          headers: {
+            "Content-Type": getContentType(path.basename(safePath)),
+            "Content-Length": stat.size.toString(),
+            "Cache-Control": "no-store",
+          },
+        });
+      } catch {
+        return NextResponse.json({ success: false, error: "Asset not found" }, { status: 404 });
+      }
+    }
 
     const entries = await fs.readdir(UUASSETS_DIR, { withFileTypes: true });
 
