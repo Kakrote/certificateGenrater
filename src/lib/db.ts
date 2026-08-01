@@ -88,33 +88,37 @@ export async function initializeDatabaseIfNeeded() {
       CREATE INDEX IF NOT EXISTS "Certificate_email_idx" ON "Certificate"("email");
     `);
 
-    const count = await db.certificate.count().catch(() => 0);
-    if (count < testingData.length && Array.isArray(testingData) && testingData.length > 0) {
-      console.log(`Auto-seeding ${testingData.length} records into SQLite database...`);
-      for (const cert of testingData as CertificateRecord[]) {
-        const extractedEmail = extractEmailFromDetails(cert.details, cert.email);
-        await db.certificate.upsert({
-          where: { certificateId: cert.certificateId },
-          update: {
-            phone: cert.phone || "",
-            cleanPhone: (cert.phone || "").replace(/\D/g, ""),
-            email: extractedEmail,
-          },
-          create: {
-            id: cert.id,
-            certificateId: cert.certificateId,
-            name: cert.name,
-            phone: cert.phone || "",
-            cleanPhone: (cert.phone || "").replace(/\D/g, ""),
-            email: extractedEmail,
-            driveUrl: cert.driveUrl,
-            event: cert.event,
-            issueDate: cert.issueDate,
-            details: cert.details || "",
-            downloads: cert.downloads || 0,
-          },
-        }).catch(() => {});
+    const seedStat = await db.systemStat.findUnique({ where: { key: "isSeeded" } }).catch(() => null);
+    if (!seedStat) {
+      const count = await db.certificate.count().catch(() => 0);
+      if (count === 0 && Array.isArray(testingData) && testingData.length > 0) {
+        console.log(`Initial seeding ${testingData.length} records into SQLite database...`);
+        for (const cert of testingData as CertificateRecord[]) {
+          const extractedEmail = extractEmailFromDetails(cert.details, cert.email);
+          await db.certificate.upsert({
+            where: { certificateId: cert.certificateId },
+            update: {},
+            create: {
+              id: cert.id,
+              certificateId: cert.certificateId,
+              name: cert.name,
+              phone: cert.phone || "",
+              cleanPhone: (cert.phone || "").replace(/\D/g, ""),
+              email: extractedEmail,
+              driveUrl: cert.driveUrl,
+              event: cert.event,
+              issueDate: cert.issueDate,
+              details: cert.details || "",
+              downloads: cert.downloads || 0,
+            },
+          }).catch(() => {});
+        }
       }
+      await db.systemStat.upsert({
+        where: { key: "isSeeded" },
+        update: { value: 1 },
+        create: { key: "isSeeded", value: 1 },
+      }).catch(() => {});
     }
     isInitialized = true;
   } catch (err) {

@@ -1,9 +1,11 @@
+
 import { NextResponse } from "next/server";
 import fs from "fs/promises";
 import path from "path";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+export const maxDuration = 300;
 
 const UUASSETS_DIR = path.join(process.cwd(), "public", "uuassets");
 
@@ -214,7 +216,7 @@ export async function POST(request: Request) {
   }
 }
 
-// DELETE /api/uuassets - Delete a file or an entire event folder
+// DELETE /api/uuassets - Delete file(s) or an entire event folder
 export async function DELETE(request: Request) {
   try {
     await ensureUuassetsDir();
@@ -222,8 +224,62 @@ export async function DELETE(request: Request) {
     const action = searchParams.get("action");
     const filename = searchParams.get("filename");
     const folder = searchParams.get("folder");
+    const filenamesParam = searchParams.get("filenames");
 
-    // Action: Delete entire subfolder
+    // Try parsing JSON body for bulk actions
+    let body: any = null;
+    try {
+      body = await request.json();
+    } catch {
+      // Body not provided or not JSON
+    }
+
+    // Action 1: Delete multiple files (from JSON body or filenames query param)
+    const filesToDelete: Array<{ filename: string; folder?: string }> = [];
+
+    if (body && Array.isArray(body.files)) {
+      filesToDelete.push(...body.files);
+    } else if (body && Array.isArray(body.filenames)) {
+      body.filenames.forEach((fn: string) => {
+        filesToDelete.push({ filename: fn, folder: body.folder || folder || "" });
+      });
+    } else if (filenamesParam) {
+      filenamesParam.split(",").forEach((fn) => {
+        if (fn.trim()) {
+          filesToDelete.push({ filename: fn.trim(), folder: folder || "" });
+        }
+      });
+    }
+
+    if (filesToDelete.length > 0) {
+      let deletedCount = 0;
+      const failedFiles: string[] = [];
+
+      for (const item of filesToDelete) {
+        if (!item.filename) continue;
+        const cleanFolder = item.folder && item.folder !== "root" ? sanitizeName(item.folder) : "";
+        const safeFilename = path.basename(item.filename);
+        const filePath = cleanFolder
+          ? path.join(UUASSETS_DIR, cleanFolder, safeFilename)
+          : path.join(UUASSETS_DIR, safeFilename);
+
+        try {
+          await fs.unlink(filePath);
+          deletedCount++;
+        } catch {
+          failedFiles.push(safeFilename);
+        }
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `Successfully deleted ${deletedCount} file(s).`,
+        count: deletedCount,
+        failedFiles,
+      });
+    }
+
+    // Action 2: Delete entire subfolder
     if (action === "deleteFolder" && folder) {
       const cleanFolder = sanitizeName(folder);
       if (!cleanFolder || cleanFolder === "root") {
@@ -242,7 +298,7 @@ export async function DELETE(request: Request) {
       }
     }
 
-    // Action: Delete individual file
+    // Action 3: Delete single individual file
     if (filename) {
       const cleanFolder = folder && folder !== "root" ? sanitizeName(folder) : "";
       const safeFilename = path.basename(filename);
@@ -264,11 +320,11 @@ export async function DELETE(request: Request) {
       }
     }
 
-    return NextResponse.json({ success: false, error: "Missing filename or folder parameter." }, { status: 400 });
+    return NextResponse.json({ success: false, error: "Missing filename, filenames, or folder parameter." }, { status: 400 });
   } catch (error: any) {
     console.error("DELETE /api/uuassets error:", error);
     return NextResponse.json(
-      { success: false, error: error?.message || "Failed to delete item." },
+      { success: false, error: error?.message || "Failed to delete item(s)." },
       { status: 500 }
     );
   }

@@ -48,6 +48,7 @@ export const AdminDashboard: React.FC = () => {
   const [certificates, setCertificates] = useState<CertificateRecord[]>(INITIAL_CERTIFICATES);
   const [totalLookups, setTotalLookups] = useState<number>(597);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCertIds, setSelectedCertIds] = useState<string[]>([]);
 
   // Modals
   const [showAddModal, setShowAddModal] = useState(false);
@@ -280,6 +281,7 @@ export const AdminDashboard: React.FC = () => {
         const json = await res.json();
         if (json.success) {
           showToast("Record Deleted", `Removed certificate for ${name}`, "info");
+          setSelectedCertIds((prev) => prev.filter((i) => i !== id));
           await loadData();
           return;
         }
@@ -289,8 +291,69 @@ export const AdminDashboard: React.FC = () => {
 
       const filtered = certificates.filter((c) => c.id !== id);
       setCertificates(filtered);
+      setSelectedCertIds((prev) => prev.filter((i) => i !== id));
       saveStoredCertificates(filtered);
       showToast("Record Deleted", `Removed certificate for ${name}`, "info");
+    }
+  };
+
+  // Bulk Delete Records
+  const toggleCertSelection = (id: string) => {
+    setSelectedCertIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleSelectAllCerts = (targetCertificates: CertificateRecord[]) => {
+    const targetIds = targetCertificates.map((c) => c.id);
+    const isAllSelected = targetIds.length > 0 && targetIds.every((id) => selectedCertIds.includes(id));
+
+    if (isAllSelected) {
+      setSelectedCertIds((prev) => prev.filter((id) => !targetIds.includes(id)));
+    } else {
+      setSelectedCertIds((prev) => Array.from(new Set([...prev, ...targetIds])));
+    }
+  };
+
+  const handleDeleteMultipleCerts = async (targetCertificates: CertificateRecord[]) => {
+    const selectedRecords = targetCertificates.filter((c) => selectedCertIds.includes(c.id));
+    if (selectedRecords.length === 0) {
+      showToast("No Records Selected", "Please select certificate records to delete.", "error");
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to PERMANENTLY delete ${selectedRecords.length} selected certificate record(s)?`)) {
+      return;
+    }
+
+    const idsToDelete = selectedRecords.map((c) => c.id);
+    const certIdsToDelete = selectedRecords.map((c) => c.certificateId);
+    const allQueryIds = Array.from(new Set([...idsToDelete, ...certIdsToDelete]));
+
+    // 1. Immediately remove selected items from local state & localStorage
+    const filtered = certificates.filter(
+      (c) => !idsToDelete.includes(c.id) && !certIdsToDelete.includes(c.certificateId)
+    );
+    setCertificates(filtered);
+    saveStoredCertificates(filtered);
+    setSelectedCertIds([]);
+
+    // 2. Call backend API to delete from database
+    try {
+      const res = await fetch(`/api/certificates?ids=${encodeURIComponent(allQueryIds.join(","))}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids: allQueryIds }),
+      });
+      const json = await res.json();
+
+      if (json.success) {
+        showToast("Records Deleted", `Successfully removed ${selectedRecords.length} certificate record(s).`, "info");
+      } else {
+        showToast("Delete Notice", json.error || "Deleted records locally.", "info");
+      }
+    } catch {
+      showToast("Records Deleted", `Removed ${selectedRecords.length} certificate record(s).`, "info");
     }
   };
 
@@ -566,15 +629,27 @@ export const AdminDashboard: React.FC = () => {
       {/* Main Records Table */}
       <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xl shadow-blue-950/5 space-y-4">
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4">
-          <div className="relative flex-1 max-w-md">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search by Name, Phone, Email, Event, or Certificate ID..."
-              className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-orange-500 focus:bg-white"
-            />
+          <div className="flex items-center gap-3 flex-1 max-w-lg">
+            <div className="relative flex-1">
+              <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search by Name, Phone, Email, Event, or Certificate ID..."
+                className="w-full pl-10 pr-4 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 placeholder-slate-400 text-xs focus:outline-none focus:border-orange-500 focus:bg-white"
+              />
+            </div>
+
+            {selectedCertIds.length > 0 && (
+              <button
+                onClick={() => handleDeleteMultipleCerts(filteredCertificates)}
+                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white font-bold text-xs flex items-center gap-1.5 shadow-md shadow-rose-600/20 cursor-pointer shrink-0"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                Delete Selected ({selectedCertIds.length})
+              </button>
+            )}
           </div>
 
           <button
@@ -591,6 +666,18 @@ export const AdminDashboard: React.FC = () => {
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="bg-slate-50 text-slate-600 border-b border-slate-200 font-semibold uppercase tracking-wider">
+                <th className="p-3.5 w-10 text-center">
+                  <input
+                    type="checkbox"
+                    checked={
+                      filteredCertificates.length > 0 &&
+                      filteredCertificates.every((c) => selectedCertIds.includes(c.id))
+                    }
+                    onChange={() => handleSelectAllCerts(filteredCertificates)}
+                    className="w-4 h-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500 cursor-pointer accent-orange-600"
+                    title="Select/Deselect all filtered records"
+                  />
+                </th>
                 <th className="p-3.5">ID</th>
                 <th className="p-3.5">Recipient Name</th>
                 <th className="p-3.5">Phone Number</th>
@@ -604,59 +691,75 @@ export const AdminDashboard: React.FC = () => {
             <tbody className="divide-y divide-slate-100 text-slate-700">
               {filteredCertificates.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="p-8 text-center text-slate-400">
+                  <td colSpan={9} className="p-8 text-center text-slate-400">
                     No certificates found. Click "Add Single Certificate" to create one.
                   </td>
                 </tr>
               ) : (
-                filteredCertificates.map((cert) => (
-                  <tr key={cert.id} className="hover:bg-orange-50/40 transition-colors">
-                    <td className="p-3.5 font-mono text-[11px] text-slate-500">{cert.certificateId}</td>
-                    <td className="p-3.5 font-semibold text-slate-900">{cert.name}</td>
-                    <td className="p-3.5 font-mono text-slate-700">{cert.phone || "-"}</td>
-                    <td className="p-3.5 font-mono text-slate-700">{cert.email || "-"}</td>
-                    <td className="p-3.5 text-blue-900 font-medium max-w-xs truncate">{cert.event}</td>
-                    <td className="p-3.5 max-w-xs truncate">
-                      <a
-                        href={cert.driveUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="text-slate-500 hover:text-orange-600 font-mono text-[11px] flex items-center gap-1"
-                      >
-                        <ExternalLink className="w-3 h-3 shrink-0" />
-                        <span className="truncate">{cert.driveUrl}</span>
-                      </a>
-                    </td>
-                    <td className="p-3.5 text-center font-semibold text-orange-700">
-                      {cert.downloads || 0}
-                    </td>
-                    <td className="p-3.5 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => setPreviewCert(cert)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer"
-                          title="Preview Certificate"
+                filteredCertificates.map((cert) => {
+                  const isSelected = selectedCertIds.includes(cert.id);
+                  return (
+                    <tr
+                      key={cert.id}
+                      className={`transition-colors ${
+                        isSelected ? "bg-orange-50/70" : "hover:bg-orange-50/40"
+                      }`}
+                    >
+                      <td className="p-3.5 text-center">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => toggleCertSelection(cert.id)}
+                          className="w-4 h-4 rounded border-slate-300 text-orange-600 focus:ring-orange-500 cursor-pointer accent-orange-600"
+                        />
+                      </td>
+                      <td className="p-3.5 font-mono text-[11px] text-slate-500">{cert.certificateId}</td>
+                      <td className="p-3.5 font-semibold text-slate-900">{cert.name}</td>
+                      <td className="p-3.5 font-mono text-slate-700">{cert.phone || "-"}</td>
+                      <td className="p-3.5 font-mono text-slate-700">{cert.email || "-"}</td>
+                      <td className="p-3.5 text-blue-900 font-medium max-w-xs truncate">{cert.event}</td>
+                      <td className="p-3.5 max-w-xs truncate">
+                        <a
+                          href={cert.driveUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-slate-500 hover:text-orange-600 font-mono text-[11px] flex items-center gap-1"
                         >
-                          <Eye className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => setEditingCert(cert)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-700 hover:bg-indigo-50 transition-colors cursor-pointer"
-                          title="Edit Record"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(cert.id, cert.name)}
-                          className="p-1.5 rounded-lg text-slate-500 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
-                          title="Delete Record"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                          <ExternalLink className="w-3 h-3 shrink-0" />
+                          <span className="truncate">{cert.driveUrl}</span>
+                        </a>
+                      </td>
+                      <td className="p-3.5 text-center font-semibold text-orange-700">
+                        {cert.downloads || 0}
+                      </td>
+                      <td className="p-3.5 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button
+                            onClick={() => setPreviewCert(cert)}
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-blue-700 hover:bg-blue-50 transition-colors cursor-pointer"
+                            title="Preview Certificate"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => setEditingCert(cert)}
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-700 hover:bg-indigo-50 transition-colors cursor-pointer"
+                            title="Edit Record"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(cert.id, cert.name)}
+                            className="p-1.5 rounded-lg text-slate-500 hover:text-rose-700 hover:bg-rose-50 transition-colors cursor-pointer"
+                            title="Delete Record"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

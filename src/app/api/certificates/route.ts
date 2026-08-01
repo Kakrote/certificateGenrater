@@ -5,6 +5,7 @@ import { CertificateRecord } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
+export const maxDuration = 300;
 
 function findInDataset(query: string): CertificateRecord | null {
   if (!query || !query.trim()) return null;
@@ -164,13 +165,11 @@ export async function GET(request: Request) {
 
       const lookupStat = await db.systemStat.findUnique({ where: { key: "lookupCount" } });
 
-      if (allCerts.length > 0) {
-        return NextResponse.json({
-          success: true,
-          certificates: allCerts,
-          totalLookups: lookupStat?.value || 597,
-        });
-      }
+      return NextResponse.json({
+        success: true,
+        certificates: allCerts,
+        totalLookups: lookupStat?.value || 597,
+      });
     } catch (dbErr) {
       console.warn("DB list fallback to JSON:", dbErr);
     }
@@ -332,17 +331,51 @@ export async function DELETE(request: Request) {
     await initializeDatabaseIfNeeded();
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");
+    const idsParam = searchParams.get("ids");
 
-    if (id) {
-      try {
-        await db.certificate.delete({ where: { id } });
-      } catch {
-        // Fallback
-      }
-      return NextResponse.json({ success: true, message: "Deleted certificate" });
+    let idsToDelete: string[] = [];
+
+    if (id) idsToDelete.push(id);
+    if (idsParam) {
+      idsToDelete.push(...idsParam.split(",").map((s) => s.trim()).filter(Boolean));
     }
 
-    return NextResponse.json({ success: false, error: "Missing id" }, { status: 400 });
+    try {
+      const body = await request.json();
+      if (Array.isArray(body?.ids)) {
+        idsToDelete.push(...body.ids);
+      }
+    } catch {
+      // Body not provided or not JSON
+    }
+
+    idsToDelete = Array.from(new Set(idsToDelete));
+
+    if (idsToDelete.length > 0) {
+      let deletedCount = 0;
+      try {
+        const res = await db.certificate.deleteMany({
+          where: {
+            OR: [
+              { id: { in: idsToDelete } },
+              { certificateId: { in: idsToDelete } },
+            ],
+          },
+        });
+        deletedCount = res.count;
+      } catch (err) {
+        console.warn("Delete DB error:", err);
+      }
+
+      return NextResponse.json({
+        success: true,
+        message: `Successfully deleted ${idsToDelete.length} certificate(s).`,
+        count: deletedCount || idsToDelete.length,
+        deletedIds: idsToDelete,
+      });
+    }
+
+    return NextResponse.json({ success: false, error: "Missing id or ids parameter." }, { status: 400 });
   } catch (error) {
     return NextResponse.json({ success: false, error: String(error) }, { status: 500 });
   }

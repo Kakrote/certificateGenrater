@@ -62,11 +62,14 @@ export const UuassetsManager: React.FC<UuassetsManagerProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState<boolean>(false);
+  const [selectedFileKeys, setSelectedFileKeys] = useState<string[]>([]);
 
   // New Folder modal / input state
   const [showNewFolderModal, setShowNewFolderModal] = useState<boolean>(false);
   const [newFolderName, setNewFolderName] = useState<string>("");
   const [creatingFolder, setCreatingFolder] = useState<boolean>(false);
+
+  const getFileKey = (file: UuassetFile) => `${file.folder || "root"}:${file.filename}`;
 
   const fetchUuassets = async () => {
     setLoading(true);
@@ -92,6 +95,13 @@ export const UuassetsManager: React.FC<UuassetsManagerProps> = ({
   useEffect(() => {
     fetchUuassets();
   }, []);
+
+  const toggleFileSelection = (file: UuassetFile) => {
+    const key = getFileKey(file);
+    setSelectedFileKeys((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+    );
+  };
 
   const handleCreateFolder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -224,12 +234,64 @@ export const UuassetsManager: React.FC<UuassetsManagerProps> = ({
       const data = await res.json();
       if (data.success) {
         showToast("File Deleted", `Removed ${filename} from uuassets repository.`, "info");
+        setSelectedFileKeys((prev) => prev.filter((k) => k !== `${folderName || "root"}:${filename}`));
         await fetchUuassets();
       } else {
         showToast("Delete Failed", data.error || "Could not delete file.", "error");
       }
     } catch (err: any) {
       showToast("Delete Error", err?.message || "Failed to delete file", "error");
+    }
+  };
+
+  const handleDeleteMultipleFiles = async (targetFiles: UuassetFile[]) => {
+    const selectedList = targetFiles.filter((f) => selectedFileKeys.includes(getFileKey(f)));
+    if (selectedList.length === 0) {
+      showToast("No Files Selected", "Please select one or more files to delete.", "error");
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to PERMANENTLY delete all ${selectedList.length} selected certificate files?`)) {
+      return;
+    }
+
+    const payloadFiles = selectedList.map((f) => ({
+      filename: f.filename,
+      folder: f.folder,
+    }));
+
+    try {
+      const res = await fetch("/api/uuassets", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ files: payloadFiles }),
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        showToast(
+          "Multiple Files Deleted!",
+          `Successfully deleted ${data.count || selectedList.length} certificate file(s).`,
+          "success"
+        );
+        setSelectedFileKeys([]);
+        await fetchUuassets();
+      } else {
+        showToast("Bulk Delete Failed", data.error || "Could not delete selected files.", "error");
+      }
+    } catch (err: any) {
+      showToast("Delete Error", err?.message || "Failed to communicate with server", "error");
+    }
+  };
+
+  const handleSelectAllFiles = (targetFiles: UuassetFile[]) => {
+    const allKeys = targetFiles.map(getFileKey);
+    const isAllSelected = allKeys.length > 0 && allKeys.every((k) => selectedFileKeys.includes(k));
+
+    if (isAllSelected) {
+      setSelectedFileKeys((prev) => prev.filter((k) => !allKeys.includes(k)));
+    } else {
+      setSelectedFileKeys((prev) => Array.from(new Set([...prev, ...allKeys])));
     }
   };
 
@@ -466,77 +528,109 @@ export const UuassetsManager: React.FC<UuassetsManagerProps> = ({
       </div>
 
       {/* Bulk Action Controls Bar */}
-      {filteredFiles.length > 0 && (
-        <div className="p-3.5 rounded-2xl bg-slate-100/80 border border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-2 text-slate-700 font-semibold">
-            <Sparkles className="w-4 h-4 text-orange-600" />
-            <span>Folder Tools ({filteredFiles.length} files in selection):</span>
-          </div>
+      {filteredFiles.length > 0 && (() => {
+        const selectedInFilterCount = filteredFiles.filter((f) => selectedFileKeys.includes(getFileKey(f))).length;
+        const isAllFilteredSelected = filteredFiles.length > 0 && selectedInFilterCount === filteredFiles.length;
 
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              onClick={() => {
-                const allLinks = filteredFiles.map((f) => getFullDomainUrl(f)).join("\n");
-                copyToClipboard(allLinks, `All ${filteredFiles.length} certificate links`);
-              }}
-              className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer"
-            >
-              <Copy className="w-3.5 h-3.5 text-orange-600" />
-              Bulk Copy Folder Links
-            </button>
+        return (
+          <div className="p-3.5 rounded-2xl bg-slate-100/80 border border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+            <div className="flex items-center gap-2 text-slate-700 font-semibold">
+              <Sparkles className="w-4 h-4 text-orange-600" />
+              <span>Folder Tools ({filteredFiles.length} files in selection):</span>
+              {selectedInFilterCount > 0 && (
+                <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 font-bold text-[11px] border border-orange-200">
+                  {selectedInFilterCount} Selected
+                </span>
+              )}
+            </div>
 
-            <button
-              onClick={() => {
-                import("@/lib/excel").then((mod) => mod.generateExcelFromUuassets(filteredFiles));
-                showToast("Excel Generated", `Downloaded Excel template pre-filled with ${filteredFiles.length} certificate links.`, "success");
-              }}
-              className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer"
-            >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-              Export Excel Pre-filled Template
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => handleSelectAllFiles(filteredFiles)}
+                className={`px-3 py-1.5 rounded-xl font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer transition-all ${
+                  isAllFilteredSelected
+                    ? "bg-orange-600 text-white"
+                    : "bg-white hover:bg-slate-50 text-slate-800 border border-slate-200"
+                }`}
+              >
+                <Check className="w-3.5 h-3.5" />
+                {isAllFilteredSelected ? "Deselect All" : "Select All"}
+              </button>
 
-            <button
-              onClick={async () => {
-                if (!confirm(`Auto-create database records for all ${filteredFiles.length} files in current view?`)) return;
-                const recordsToCreate = filteredFiles.map((file, idx) => {
-                  const nameWithoutExt = file.filename.replace(/\.[^/.]+$/, "");
-                  const cleanName = nameWithoutExt.replace(/[-_]/g, " ").replace(/\d+/g, "").trim();
-                  const digits = nameWithoutExt.replace(/\D/g, "");
+              {selectedInFilterCount > 0 && (
+                <button
+                  onClick={() => handleDeleteMultipleFiles(filteredFiles)}
+                  className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-700 hover:to-red-700 text-white font-bold flex items-center gap-1.5 shadow-md shadow-rose-600/20 cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Delete Selected ({selectedInFilterCount})
+                </button>
+              )}
 
-                  return {
-                    name: cleanName || `Participant ${idx + 1}`,
-                    phone: digits.length >= 7 ? digits : `+198765${1000 + idx}`,
-                    email: undefined,
-                    driveUrl: getFullDomainUrl(file),
-                    event: selectedFolder !== "all" && selectedFolder !== "root" ? selectedFolder : "General Certificate of Achievement",
-                    issueDate: new Date().toISOString().split("T")[0],
-                    details: `Event folder: ${file.folder || "uuassets"}`,
-                  };
-                });
+              <button
+                onClick={() => {
+                  const allLinks = filteredFiles.map((f) => getFullDomainUrl(f)).join("\n");
+                  copyToClipboard(allLinks, `All ${filteredFiles.length} certificate links`);
+                }}
+                className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer"
+              >
+                <Copy className="w-3.5 h-3.5 text-orange-600" />
+                Bulk Copy Folder Links
+              </button>
 
-                try {
-                  const res = await fetch("/api/certificates", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ records: recordsToCreate }),
+              <button
+                onClick={() => {
+                  import("@/lib/excel").then((mod) => mod.generateExcelFromUuassets(filteredFiles));
+                  showToast("Excel Generated", `Downloaded Excel template pre-filled with ${filteredFiles.length} certificate links.`, "success");
+                }}
+                className="px-3 py-1.5 rounded-xl bg-white hover:bg-slate-50 text-slate-800 border border-slate-200 font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer"
+              >
+                <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
+                Export Excel Pre-filled Template
+              </button>
+
+              <button
+                onClick={async () => {
+                  if (!confirm(`Auto-create database records for all ${filteredFiles.length} files in current view?`)) return;
+                  const recordsToCreate = filteredFiles.map((file, idx) => {
+                    const nameWithoutExt = file.filename.replace(/\.[^/.]+$/, "");
+                    const cleanName = nameWithoutExt.replace(/[-_]/g, " ").replace(/\d+/g, "").trim();
+                    const digits = nameWithoutExt.replace(/\D/g, "");
+
+                    return {
+                      name: cleanName || `Participant ${idx + 1}`,
+                      phone: digits.length >= 7 ? digits : `+198765${1000 + idx}`,
+                      email: undefined,
+                      driveUrl: getFullDomainUrl(file),
+                      event: selectedFolder !== "all" && selectedFolder !== "root" ? selectedFolder : "General Certificate of Achievement",
+                      issueDate: new Date().toISOString().split("T")[0],
+                      details: `Event folder: ${file.folder || "uuassets"}`,
+                    };
                   });
-                  const data = await res.json();
-                  if (data.success) {
-                    showToast("Bulk Import Success!", `Created ${data.count || recordsToCreate.length} database certificate records.`, "success");
+
+                  try {
+                    const res = await fetch("/api/certificates", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ records: recordsToCreate }),
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                      showToast("Bulk Import Success!", `Created ${data.count || recordsToCreate.length} database certificate records.`, "success");
+                    }
+                  } catch (err: any) {
+                    showToast("Error", err?.message || "Failed to create records", "error");
                   }
-                } catch (err: any) {
-                  showToast("Error", err?.message || "Failed to create records", "error");
-                }
-              }}
-              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 text-white font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              Auto-Create DB Records
-            </button>
+                }}
+                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-orange-600 to-amber-600 text-white font-semibold flex items-center gap-1.5 shadow-xs cursor-pointer"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                Auto-Create DB Records
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* Search & Filter */}
       <div className="flex items-center justify-between gap-4">
@@ -573,6 +667,8 @@ export const UuassetsManager: React.FC<UuassetsManagerProps> = ({
             {filteredFiles.map((file) => {
               const fullDomainUrl = getFullDomainUrl(file);
               const isCopied = copiedUrl === fullDomainUrl || copiedUrl === file.url;
+              const fileKey = getFileKey(file);
+              const isSelected = selectedFileKeys.includes(fileKey);
 
               return (
                 <motion.div
@@ -581,7 +677,11 @@ export const UuassetsManager: React.FC<UuassetsManagerProps> = ({
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className="bg-slate-50/70 border border-slate-200/90 hover:border-orange-300 rounded-2xl p-4 flex flex-col justify-between space-y-3 transition-all hover:shadow-md group relative"
+                  className={`border rounded-2xl p-4 flex flex-col justify-between space-y-3 transition-all hover:shadow-md group relative ${
+                    isSelected
+                      ? "border-orange-500 ring-2 ring-orange-500/20 bg-orange-50/30"
+                      : "bg-slate-50/70 border-slate-200/90 hover:border-orange-300"
+                  }`}
                 >
                   {/* Top Preview */}
                   <div className="relative aspect-[1.6/1] bg-slate-200/70 rounded-xl overflow-hidden flex items-center justify-center border border-slate-200">
@@ -604,6 +704,23 @@ export const UuassetsManager: React.FC<UuassetsManagerProps> = ({
                     <span className="absolute top-2 left-2 px-2 py-0.5 rounded-md text-[9px] font-bold bg-slate-900/80 text-white backdrop-blur-xs font-mono uppercase">
                       📁 {file.folder || "root"}
                     </span>
+
+                    {/* Selection Checkbox */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFileSelection(file);
+                      }}
+                      className={`absolute top-2 right-2 z-10 w-6 h-6 rounded-lg flex items-center justify-center transition-all cursor-pointer ${
+                        isSelected
+                          ? "bg-orange-600 text-white shadow-md ring-2 ring-white"
+                          : "bg-slate-900/60 hover:bg-slate-900/90 text-white/70 backdrop-blur-xs"
+                      }`}
+                      title={isSelected ? "Deselect file" : "Select file for deletion"}
+                    >
+                      <Check className={`w-4 h-4 ${isSelected ? "opacity-100" : "opacity-0 hover:opacity-50"}`} />
+                    </button>
                   </div>
 
                   {/* Info */}
