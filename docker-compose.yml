@@ -20,8 +20,9 @@ services:
       - .env
 
     volumes:
-      - ./prisma:/app/prisma
+      - prisma_data:/app/prisma
       - uuassets_data:/app/public/uuassets
 
 volumes:
+  prisma_data:
   uuassets_data:
