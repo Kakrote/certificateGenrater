@@ -29,7 +29,7 @@ async function main() {
     const count = await prisma.certificate.count().catch(() => 0);
 
     if (count <= 10) {
-      console.log(`Seeding ${testingData.length} records from testing.xlsx into SQLite DB...`);
+      console.log(`Seeding ${testingData.length} records from test.xlsx into SQLite DB...`);
       await prisma.certificate.deleteMany({}).catch(() => {});
 
       for (const cert of testingData) {
