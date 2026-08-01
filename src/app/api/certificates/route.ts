@@ -194,6 +194,57 @@ export async function POST(request: Request) {
     await initializeDatabaseIfNeeded();
     const body = await request.json();
 
+    if (body.action === "deleteCertificates" && Array.isArray(body.ids)) {
+      const idsToDelete = Array.from(new Set(body.ids.map((id: string) => String(id).trim()).filter(Boolean)));
+
+      if (idsToDelete.length === 0) {
+        return NextResponse.json({ success: false, error: "No certificate IDs were provided." }, { status: 400 });
+      }
+
+      try {
+        const matchedRecords = await db.certificate.findMany({
+          where: {
+            OR: [
+              { id: { in: idsToDelete } },
+              { certificateId: { in: idsToDelete } },
+            ],
+          },
+          select: { id: true },
+        });
+
+        if (matchedRecords.length === 0) {
+          return NextResponse.json(
+            { success: false, error: "No matching certificate records were found to delete." },
+            { status: 404 }
+          );
+        }
+
+        const res = await db.certificate.deleteMany({
+          where: { id: { in: matchedRecords.map((record) => record.id) } },
+        });
+
+        if (res.count === 0) {
+          return NextResponse.json(
+            { success: false, error: "No certificate records were deleted." },
+            { status: 500 }
+          );
+        }
+
+        return NextResponse.json({
+          success: true,
+          message: `Successfully deleted ${res.count} certificate(s).`,
+          count: res.count,
+          deletedIds: idsToDelete,
+        });
+      } catch (err) {
+        console.warn("Bulk delete DB error:", err);
+        return NextResponse.json(
+          { success: false, error: "Failed to delete certificate records from the database." },
+          { status: 500 }
+        );
+      }
+    }
+
     if (body.action === "incrementDownload" && body.id) {
       try {
         const updated = await db.certificate.update({
@@ -352,38 +403,28 @@ export async function DELETE(request: Request) {
     idsToDelete = Array.from(new Set(idsToDelete));
 
     if (idsToDelete.length > 0) {
-      let deletedCount = 0;
-      try {
-        const matchedRecords = await db.certificate.findMany({
-          where: {
-            OR: [
-              { id: { in: idsToDelete } },
-              { certificateId: { in: idsToDelete } },
-            ],
-          },
-          select: { id: true },
-        });
+      const matchedRecords = await db.certificate.findMany({
+        where: {
+          OR: [
+            { id: { in: idsToDelete } },
+            { certificateId: { in: idsToDelete } },
+          ],
+        },
+        select: { id: true },
+      });
 
-        if (matchedRecords.length === 0) {
-          return NextResponse.json(
-            { success: false, error: "No matching certificate records were found to delete." },
-            { status: 404 }
-          );
-        }
-
-        const res = await db.certificate.deleteMany({
-          where: { id: { in: matchedRecords.map((record) => record.id) } },
-        });
-        deletedCount = res.count;
-      } catch (err) {
-        console.warn("Delete DB error:", err);
+      if (matchedRecords.length === 0) {
         return NextResponse.json(
-          { success: false, error: "Failed to delete certificate records from the database." },
-          { status: 500 }
+          { success: false, error: "No matching certificate records were found to delete." },
+          { status: 404 }
         );
       }
 
-      if (deletedCount === 0) {
+      const res = await db.certificate.deleteMany({
+        where: { id: { in: matchedRecords.map((record) => record.id) } },
+      });
+
+      if (res.count === 0) {
         return NextResponse.json(
           { success: false, error: "No certificate records were deleted." },
           { status: 500 }
@@ -392,8 +433,8 @@ export async function DELETE(request: Request) {
 
       return NextResponse.json({
         success: true,
-        message: `Successfully deleted ${idsToDelete.length} certificate(s).`,
-        count: deletedCount || idsToDelete.length,
+        message: `Successfully deleted ${res.count} certificate(s).`,
+        count: res.count,
         deletedIds: idsToDelete,
       });
     }

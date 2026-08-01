@@ -331,10 +331,10 @@ export const AdminDashboard: React.FC = () => {
     const allQueryIds = Array.from(new Set([...idsToDelete, ...certIdsToDelete]));
 
     try {
-      const res = await fetch(`/api/certificates?ids=${encodeURIComponent(allQueryIds.join(","))}`, {
-        method: "DELETE",
+      const res = await fetch("/api/certificates", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: allQueryIds }),
+        body: JSON.stringify({ action: "deleteCertificates", ids: allQueryIds }),
       });
       const json = await res.json();
 
