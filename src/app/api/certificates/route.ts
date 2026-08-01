@@ -202,25 +202,13 @@ export async function POST(request: Request) {
       }
 
       try {
-        const matchedRecords = await db.certificate.findMany({
+        const res = await db.certificate.deleteMany({
           where: {
             OR: [
               { id: { in: idsToDelete } },
               { certificateId: { in: idsToDelete } },
             ],
           },
-          select: { id: true },
-        });
-
-        if (matchedRecords.length === 0) {
-          return NextResponse.json(
-            { success: false, error: "No matching certificate records were found to delete." },
-            { status: 404 }
-          );
-        }
-
-        const res = await db.certificate.deleteMany({
-          where: { id: { in: matchedRecords.map((record) => record.id) } },
         });
 
         if (res.count === 0) {
@@ -237,7 +225,7 @@ export async function POST(request: Request) {
           deletedIds: idsToDelete,
         });
       } catch (err) {
-        console.warn("Bulk delete DB error:", err);
+        console.error("Bulk delete DB error:", err);
         return NextResponse.json(
           { success: false, error: "Failed to delete certificate records from the database." },
           { status: 500 }
@@ -403,25 +391,13 @@ export async function DELETE(request: Request) {
     idsToDelete = Array.from(new Set(idsToDelete));
 
     if (idsToDelete.length > 0) {
-      const matchedRecords = await db.certificate.findMany({
+      const res = await db.certificate.deleteMany({
         where: {
           OR: [
             { id: { in: idsToDelete } },
             { certificateId: { in: idsToDelete } },
           ],
         },
-        select: { id: true },
-      });
-
-      if (matchedRecords.length === 0) {
-        return NextResponse.json(
-          { success: false, error: "No matching certificate records were found to delete." },
-          { status: 404 }
-        );
-      }
-
-      const res = await db.certificate.deleteMany({
-        where: { id: { in: matchedRecords.map((record) => record.id) } },
       });
 
       if (res.count === 0) {
