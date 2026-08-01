@@ -339,9 +339,13 @@ export const AdminDashboard: React.FC = () => {
       const json = await res.json();
 
       if (json.success) {
+        const filtered = certificates.filter(
+          (c) => !idsToDelete.includes(c.id) && !certIdsToDelete.includes(c.certificateId)
+        );
+        setCertificates(filtered);
+        saveStoredCertificates(filtered);
         showToast("Records Deleted", `Successfully removed ${selectedRecords.length} certificate record(s).`, "info");
         setSelectedCertIds((prev) => prev.filter((id) => !idsToDelete.includes(id)));
-        await loadData();
       } else {
         showToast("Delete Failed", json.error || "Could not delete selected certificate records.", "error");
       }
