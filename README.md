@@ -1,49 +1,96 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CertiPulse 🎓
 
-## Getting Started
+**CertiPulse** is a modern, high-performance Certificate Generation, Management, and Verification platform. Built with Next.js, React, TypeScript, and Prisma, it allows organizations to easily upload participant details, design custom templates, issue verified digital certificates, and enable public certificate lookup and correction requests.
 
-First, run the development server:
+🌐 **Live Website / Host URL:** [https://certipulse.uudoon.in](https://certipulse.uudoon.in)
+
+---
+
+## 🌟 Key Features
+
+### 👤 User Portal & Public Search
+- **Certificate Verification & Lookup:** Search certificates by email, phone, or certificate ID.
+- **Preview & Download:** High-resolution preview with single-click PNG/PDF downloading.
+- **Correction Requests:** Allows certificate holders to submit correction requests (e.g. name misspelling or details update).
+
+### 🛠️ Admin Management Dashboard
+- **Bulk Import:** Upload Excel (`.xlsx`) files containing participant details for batch certificate generation.
+- **Template & Asset Manager:** Manage background graphics, signatures, seals, and layout configurations.
+- **Correction Requests Hub:** Review, approve, or reject participant correction requests with automated status updates.
+- **Analytics & Tracking:** View generation metrics, issue counts, and active templates.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Framework:** [Next.js 16](https://nextjs.org/) (App Router)
+- **Frontend:** React 19, TypeScript, Tailwind CSS, [Framer Motion](https://www.framer.com/motion/)
+- **Icons & Effects:** [Lucide React](https://lucide.dev/), Canvas Confetti
+- **Database & ORM:** [Prisma ORM](https://www.prisma.io/) with SQLite (`better-sqlite3`)
+- **Excel Processing:** XLSX (`xlsx`)
+- **Containerization:** Docker & Docker Compose
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js (v18 or higher)
+- npm, yarn, or pnpm
+
+### Installation
+
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/your-org/certipulse.git
+   cd certipulse
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Configure Environment Variables:**
+   Create a `.env` file in the root directory:
+   ```env
+   DATABASE_URL="file:./dev.db"
+   ```
+
+4. **Initialize Database:**
+   ```bash
+   npx prisma db push
+   ```
+
+5. **Run the Development Server:**
+   ```bash
+   npm run dev
+   ```
+
+   Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+---
+
+## 🐳 Running with Docker
+
+You can also run the application using Docker Compose:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-
-
-
-
+# Build and start container in detached mode
+docker compose up -d
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The application will be accessible at [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🌐 Hosted Instance
 
-## Learn More
+The production deployment of CertiPulse is hosted at:
+👉 **[https://certipulse.uudoon.in](https://certipulse.uudoon.in)**
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📄 License
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-# Test deployment
-# Test deployment
-
-
-
-
-
-
+This project is licensed under the MIT License.
