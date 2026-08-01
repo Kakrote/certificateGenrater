@@ -189,7 +189,7 @@ export const UserPortal: React.FC = () => {
           </div>
 
           {/* Quick Test Chips */}
-          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
+          {/* <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
             <span className="text-xs text-slate-500 font-medium">Quick Test Search:</span>
             {(records.length > 0 ? records : INITIAL_CERTIFICATES).slice(0, 4).map((rec) => {
               const chipVal = rec.phone || rec.email || rec.name;
@@ -205,7 +205,7 @@ export const UserPortal: React.FC = () => {
                 </button>
               );
             })}
-          </div>
+          </div> */}
         </form>
       </div>
 
