@@ -11,12 +11,12 @@ export function getStoredCertificates(): CertificateRecord[] {
   if (typeof window === "undefined") return INITIAL_CERTIFICATES;
   try {
     const data = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (!data) {
+    if (data === null) {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(INITIAL_CERTIFICATES));
       return INITIAL_CERTIFICATES;
     }
     const parsed = JSON.parse(data);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_CERTIFICATES;
+    return Array.isArray(parsed) ? parsed : INITIAL_CERTIFICATES;
   } catch {
     return INITIAL_CERTIFICATES;
   }
@@ -25,7 +25,7 @@ export function getStoredCertificates(): CertificateRecord[] {
 export function saveStoredCertificates(certs: CertificateRecord[]): void {
   if (typeof window === "undefined") return;
   try {
-    if (Array.isArray(certs) && certs.length > 0) {
+    if (Array.isArray(certs)) {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(certs));
     }
   } catch (e) {
@@ -43,7 +43,7 @@ export async function fetchCertificatesFromApi(): Promise<{ certificates: Certif
 
     if (res.ok) {
       const json = await res.json();
-      if (json.success && Array.isArray(json.certificates) && json.certificates.length > 0) {
+      if (json.success && Array.isArray(json.certificates)) {
         saveStoredCertificates(json.certificates);
         return { certificates: json.certificates, totalLookups: json.totalLookups || 597 };
       }

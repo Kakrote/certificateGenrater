@@ -70,7 +70,7 @@ export const AdminDashboard: React.FC = () => {
   const loadData = async () => {
     try {
       const data = await fetchCertificatesFromApi();
-      if (data && Array.isArray(data.certificates) && data.certificates.length > 0) {
+      if (data && Array.isArray(data.certificates)) {
         setCertificates(data.certificates);
         setTotalLookups(data.totalLookups);
       }

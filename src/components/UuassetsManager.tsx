@@ -63,6 +63,21 @@ export const UuassetsManager: React.FC<UuassetsManagerProps> = ({
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState<boolean>(false);
   const [selectedFileKeys, setSelectedFileKeys] = useState<string[]>([]);
+  const [uploadProgress, setUploadProgress] = useState<{
+    active: boolean;
+    total: number;
+    completed: number;
+    currentFile: string;
+    percent: number;
+    failedFiles: string[];
+  }>({
+    active: false,
+    total: 0,
+    completed: 0,
+    currentFile: "",
+    percent: 0,
+    failedFiles: [],
+  });
 
   // New Folder modal / input state
   const [showNewFolderModal, setShowNewFolderModal] = useState<boolean>(false);
@@ -158,42 +173,101 @@ export const UuassetsManager: React.FC<UuassetsManagerProps> = ({
   const handleFilesUpload = async (fileList: FileList | File[]) => {
     if (!fileList || fileList.length === 0) return;
 
+    const filesArray = Array.from(fileList);
     setUploading(true);
-    const targetFolderDisplay = selectedFolder === "all" || selectedFolder === "root" ? "root (Main)" : selectedFolder;
-    showToast("Uploading Certificates", `Processing ${fileList.length} file(s) into '${targetFolderDisplay}'...`, "info");
-
-    const formData = new FormData();
-    Array.from(fileList).forEach((file) => {
-      formData.append("files", file);
+    setUploadProgress({
+      active: true,
+      total: filesArray.length,
+      completed: 0,
+      currentFile: filesArray[0].name,
+      percent: 0,
+      failedFiles: [],
     });
 
-    if (selectedFolder && selectedFolder !== "all") {
-      formData.append("folder", selectedFolder);
-    }
+    const targetFolderDisplay =
+      selectedFolder === "all" || selectedFolder === "root"
+        ? "root (Main)"
+        : selectedFolder;
 
-    try {
-      const res = await fetch("/api/uuassets", {
-        method: "POST",
-        body: formData,
+    showToast(
+      "Uploading Certificates",
+      `Uploading ${filesArray.length} file(s) into '${targetFolderDisplay}'...`,
+      "info"
+    );
+
+    let successCount = 0;
+    const failedList: string[] = [];
+
+    // Process files sequentially or in small batches for progress calculation & production stability
+    for (let index = 0; index < filesArray.length; index++) {
+      const file = filesArray[index];
+      const startPercent = Math.round((index / filesArray.length) * 100);
+
+      setUploadProgress({
+        active: true,
+        total: filesArray.length,
+        completed: index,
+        currentFile: file.name,
+        percent: startPercent,
+        failedFiles: failedList,
       });
 
-      const data = await res.json();
-      if (data.success) {
-        showToast(
-          "Upload Successful!",
-          `Saved ${data.count || fileList.length} certificate file(s) in uuassets/${data.folder || ""}.`,
-          "success"
-        );
-        await fetchUuassets();
-      } else {
-        showToast("Upload Failed", data.error || "Could not save files.", "error");
+      const formData = new FormData();
+      formData.append("files", file);
+      if (selectedFolder && selectedFolder !== "all") {
+        formData.append("folder", selectedFolder);
       }
-    } catch (err: any) {
-      showToast("Upload Error", err?.message || "Failed to communicate with server", "error");
-    } finally {
-      setUploading(false);
-      if (fileInputRef.current) fileInputRef.current.value = "";
+
+      try {
+        const res = await fetch("/api/uuassets", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await res.json();
+        if (res.ok && data.success) {
+          successCount++;
+        } else {
+          failedList.push(file.name);
+        }
+      } catch {
+        failedList.push(file.name);
+      }
+
+      const endCompleted = index + 1;
+      const endPercent = Math.round((endCompleted / filesArray.length) * 100);
+
+      setUploadProgress({
+        active: true,
+        total: filesArray.length,
+        completed: endCompleted,
+        currentFile: file.name,
+        percent: endPercent,
+        failedFiles: failedList,
+      });
     }
+
+    if (successCount > 0) {
+      showToast(
+        "Upload Complete!",
+        `Successfully uploaded ${successCount} of ${filesArray.length} file(s).`,
+        "success"
+      );
+      await fetchUuassets();
+    } else {
+      showToast(
+        "Upload Error",
+        `Failed to upload files. Please check network connection and file format.`,
+        "error"
+      );
+    }
+
+    setUploading(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+
+    setTimeout(() => {
+      setUploadProgress((prev) => ({ ...prev, active: false }));
+    }, 4000);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -504,24 +578,51 @@ export const UuassetsManager: React.FC<UuassetsManagerProps> = ({
           className="hidden"
         />
 
-        <div className="flex flex-col items-center justify-center space-y-2">
+        <div className="flex flex-col items-center justify-center space-y-3">
           <div className="w-12 h-12 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center shadow-inner">
             <UploadCloud className="w-6 h-6" />
           </div>
           <div>
             <p className="text-sm font-bold text-slate-800">
               {uploading
-                ? "Uploading certificate files..."
+                ? `Uploading Certificates... (${uploadProgress.completed}/${uploadProgress.total})`
                 : `Upload Certificates to '${selectedFolder === "all" || selectedFolder === "root" ? "uuassets Main Directory" : `uuassets/${selectedFolder}`}'`}
             </p>
             <p className="text-xs text-slate-500 mt-0.5">
               Select or Drag & Drop multiple PNG, JPG, WEBP, or PDF certificate files.
             </p>
           </div>
-          {uploading && (
-            <div className="flex items-center gap-2 text-xs text-orange-700 font-semibold pt-2">
-              <RefreshCw className="w-4 h-4 animate-spin" />
-              <span>Saving certificate files to event folder...</span>
+
+          {/* Live Progress Bar Component */}
+          {uploadProgress.active && (
+            <div className="w-full max-w-lg p-4 rounded-2xl bg-slate-900 text-white border border-orange-500/40 shadow-xl space-y-2 mt-2 text-left">
+              <div className="flex items-center justify-between text-xs font-bold">
+                <div className="flex items-center gap-2">
+                  <RefreshCw className="w-4 h-4 animate-spin text-orange-400" />
+                  <span>Uploading File {uploadProgress.completed} of {uploadProgress.total}</span>
+                </div>
+                <span className="font-mono text-orange-300 font-extrabold text-sm">
+                  {uploadProgress.percent}%
+                </span>
+              </div>
+
+              <div className="w-full h-3 bg-slate-800 rounded-full overflow-hidden p-0.5 border border-slate-700">
+                <div
+                  className="h-full bg-gradient-to-r from-orange-500 via-amber-400 to-emerald-400 rounded-full transition-all duration-300 shadow-xs"
+                  style={{ width: `${uploadProgress.percent}%` }}
+                />
+              </div>
+
+              <div className="flex items-center justify-between text-[11px] text-slate-300 font-mono pt-1">
+                <span className="truncate max-w-[280px]">
+                  File: <code className="text-amber-300 font-bold">{uploadProgress.currentFile}</code>
+                </span>
+                {uploadProgress.failedFiles.length > 0 && (
+                  <span className="text-rose-400 font-bold">
+                    {uploadProgress.failedFiles.length} Failed
+                  </span>
+                )}
+              </div>
             </div>
           )}
         </div>
