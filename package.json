@@ -10,8 +10,10 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@prisma/adapter-better-sqlite3": "^7.9.1",
     "@prisma/adapter-pg": "^7.9.0",
     "@prisma/client": "^7.9.0",
+    "better-sqlite3": "^13.0.2",
     "canvas-confetti": "^1.9.4",
     "clsx": "^2.1.1",
     "dotenv": "^17.2.1",
@@ -28,8 +30,8 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/canvas-confetti": "^1.9.0",
-    "@types/pg": "^8.15.5",
     "@types/node": "^20",
+    "@types/pg": "^8.15.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
