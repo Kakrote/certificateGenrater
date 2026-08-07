@@ -223,7 +223,7 @@ export const UserPortal: React.FC = () => {
             <div className="space-y-2">
               <h3 className="text-xl sm:text-2xl font-bold text-slate-900">No Registration Found</h3>
               <p className="text-slate-700 text-sm sm:text-base leading-relaxed max-w-md mx-auto">
-                We couldn't find any event registration associated with this{" "}
+                We couldn't find any event registration associated with this credential: {" "}
                 <span className="font-bold font-mono text-red-700 bg-red-50 px-2 py-0.5 rounded-lg border border-red-200 inline-block my-1">{searchQuery}</span>
                 . It looks like you have not registered for this event.
               </p>
