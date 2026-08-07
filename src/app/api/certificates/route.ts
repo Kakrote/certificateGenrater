@@ -143,7 +143,10 @@ export async function GET(request: Request) {
       }
 
       return NextResponse.json(
-        { success: false, message: "No certificate found for your search query." },
+        {
+          success: false,
+          message: `We couldn't find any event registration associated with this ${cleanQuery}. It looks like you have not registered for this event. Please check the email address used during registration or contact the event organizer for assistance.`,
+        },
         { status: 404 }
       );
     }

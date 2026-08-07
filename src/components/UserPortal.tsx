@@ -75,7 +75,11 @@ export const UserPortal: React.FC = () => {
         triggerConfetti();
       } else {
         setFoundCertificate(null);
-        showToast("No Record Found", "No certificate found associated with this phone number or email.", "error");
+        showToast(
+          "No Registration Found",
+          `We couldn't find any event registration associated with this credential: ${cleanTarget}.`,
+          "error"
+        );
       }
     } catch (err) {
       console.warn("Search error:", err);
@@ -211,25 +215,21 @@ export const UserPortal: React.FC = () => {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
-            className="bg-white border border-slate-200 rounded-3xl p-8 text-center space-y-4 max-w-lg mx-auto shadow-lg"
+            className="bg-white border border-red-200 rounded-3xl p-6 sm:p-8 text-center space-y-4 max-w-xl mx-auto shadow-xl shadow-red-500/5"
           >
-            <div className="w-16 h-16 rounded-2xl bg-amber-50 border border-amber-200 text-amber-600 flex items-center justify-center mx-auto">
-              <AlertTriangle className="w-8 h-8" />
+            <div className="w-16 h-16 rounded-2xl bg-red-50 border border-red-200 text-red-600 flex items-center justify-center mx-auto shadow-inner">
+              <AlertTriangle className="w-8 h-8 text-red-500" />
             </div>
-            <div>
-              <h3 className="text-xl font-bold text-slate-900">No Certificate Found</h3>
-              <p className="text-slate-600 text-sm mt-1">
-                We couldn't find any certificate linked with <span className="text-slate-900 font-mono font-bold">{searchQuery}</span>.
+            <div className="space-y-2">
+              <h3 className="text-xl sm:text-2xl font-bold text-slate-900">No Registration Found</h3>
+              <p className="text-slate-700 text-sm sm:text-base leading-relaxed max-w-md mx-auto">
+                We couldn't find any event registration associated with this{" "}
+                <span className="font-bold font-mono text-red-700 bg-red-50 px-2 py-0.5 rounded-lg border border-red-200 inline-block my-1">{searchQuery}</span>
+                . It looks like you have not registered for this event.
               </p>
-            </div>
-            <div className="bg-slate-50 p-4 rounded-xl text-xs text-slate-600 text-left space-y-2 border border-slate-200">
-              <p className="font-semibold text-slate-800">Troubleshooting Tips:</p>
-              <ul className="list-disc pl-4 space-y-1">
-                <li>Ensure the phone number or email address matches your registered information.</li>
-                <li>If searching by phone, try searching with or without country code.</li>
-                <li>If searching by email, ensure correct spelling (e.g. name@domain.com).</li>
-                <li>Contact your organization administrator to verify your record.</li>
-              </ul>
+              <p className="text-slate-500 text-xs sm:text-sm leading-relaxed pt-2 border-t border-slate-100">
+                Please check the email address used during registration or contact the event organizer for assistance.
+              </p>
             </div>
           </motion.div>
         )}
