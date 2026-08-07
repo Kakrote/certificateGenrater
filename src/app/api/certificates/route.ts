@@ -14,69 +14,43 @@ function findInDataset(query: string): CertificateRecord | null {
   const digitsQuery = query.replace(/\D/g, "");
   const dataset = testingData as CertificateRecord[];
 
-  // 1. Phone Search (If query has at least 4 digits)
+  // 1. Exact Certificate ID Search
+  let match = dataset.find(
+    (rec) => rec && rec.certificateId && rec.certificateId.toLowerCase() === trimmed
+  );
+  if (match) return match;
+
+  // 2. Exact Phone Search
   if (digitsQuery && digitsQuery.length >= 4) {
     const coreTarget = digitsQuery.length >= 10 ? digitsQuery.slice(-10) : digitsQuery;
 
-    let match = dataset.find((rec) => {
-      if (!rec) return false;
-      const recDigits = (rec.phone || "").replace(/\D/g, "");
-      if (!recDigits) return false;
-      const recCore = recDigits.length >= 10 ? recDigits.slice(-10) : recDigits;
-      return recCore === coreTarget;
-    });
-
-    if (match) return match;
-
     match = dataset.find((rec) => {
       if (!rec) return false;
       const recDigits = (rec.phone || "").replace(/\D/g, "");
       if (!recDigits) return false;
-      const recCore = recDigits.length >= 10 ? recDigits.slice(-10) : recDigits;
-
-      return (
-        recDigits.endsWith(coreTarget) ||
-        digitsQuery.endsWith(recCore) ||
-        recDigits.includes(digitsQuery) ||
-        (digitsQuery.length >= 6 && recDigits.includes(coreTarget))
-      );
-    });
-
-    if (match) return match;
-  }
-
-  // 2. Email Search
-  if (trimmed.includes("@") || trimmed.includes(".")) {
-    let match = dataset.find((rec) => rec && rec.email && rec.email.toLowerCase() === trimmed);
-    if (match) return match;
-
-    match = dataset.find((rec) => {
-      if (!rec) return false;
-      if (rec.email && rec.email.toLowerCase().includes(trimmed)) return true;
-      if (rec.details && rec.details.toLowerCase().includes(trimmed)) return true;
+      if (recDigits === digitsQuery) return true;
+      if (digitsQuery.length >= 10) {
+        const recCore = recDigits.length >= 10 ? recDigits.slice(-10) : recDigits;
+        return recCore === coreTarget;
+      }
       return false;
     });
     if (match) return match;
   }
 
-  // 3. Name or Certificate ID Search
-  let match = dataset.find(
-    (rec) =>
-      Boolean(rec) &&
-      ((rec.certificateId && rec.certificateId.toLowerCase() === trimmed) ||
-       (rec.name && rec.name.toLowerCase() === trimmed))
+  // 3. Exact Email Search
+  if (trimmed.includes("@") || trimmed.includes(".")) {
+    match = dataset.find((rec) => rec && rec.email && rec.email.toLowerCase() === trimmed);
+    if (match) return match;
+  }
+
+  // 4. Exact Name Search
+  match = dataset.find(
+    (rec) => rec && rec.name && rec.name.toLowerCase() === trimmed
   );
   if (match) return match;
 
-  return (
-    dataset.find(
-      (rec) =>
-        Boolean(rec) &&
-        ((rec.certificateId && rec.certificateId.toLowerCase().includes(trimmed)) ||
-         (rec.name && rec.name.toLowerCase().includes(trimmed)) ||
-         (rec.details && rec.details.toLowerCase().includes(trimmed)))
-    ) || null
-  );
+  return null;
 }
 
 export async function GET(request: Request) {
@@ -112,7 +86,6 @@ export async function GET(request: Request) {
         // Email, Name, and Certificate ID conditions
         orConditions.push(
           { email: { contains: cleanQuery } },
-          { details: { contains: cleanQuery } },
           { name: { contains: cleanQuery } },
           { certificateId: { contains: cleanQuery } }
         );
@@ -123,24 +96,38 @@ export async function GET(request: Request) {
           });
 
           if (certificates.length > 0) {
-            // Priority matching
-            let bestMatch = certificates[0];
+            // Strict matching validation
+            const exactCertId = certificates.find(
+              (c) => c.certificateId && c.certificateId.toLowerCase() === cleanQuery.toLowerCase()
+            );
 
+            let exactPhone: any = null;
             if (digitsQuery && digitsQuery.length >= 4) {
               const coreTarget = digitsQuery.length >= 10 ? digitsQuery.slice(-10) : digitsQuery;
-              const exactPhone = certificates.find((c) => {
+              exactPhone = certificates.find((c) => {
                 const cClean = c.cleanPhone || (c.phone || "").replace(/\D/g, "");
-                return cClean.endsWith(coreTarget) || cClean === digitsQuery;
+                if (cClean === digitsQuery) return true;
+                if (digitsQuery.length >= 10) {
+                  const cCore = cClean.length >= 10 ? cClean.slice(-10) : cClean;
+                  return cCore === coreTarget;
+                }
+                return false;
               });
-              if (exactPhone) bestMatch = exactPhone;
-            } else {
-              const exactEmail = certificates.find(
-                (c) => c.email?.toLowerCase() === cleanQuery.toLowerCase()
-              );
-              if (exactEmail) bestMatch = exactEmail;
             }
 
-            return NextResponse.json({ success: true, certificate: bestMatch });
+            const exactEmail = certificates.find(
+              (c) => c.email && c.email.toLowerCase() === cleanQuery.toLowerCase()
+            );
+
+            const exactName = certificates.find(
+              (c) => c.name && c.name.toLowerCase() === cleanQuery.toLowerCase()
+            );
+
+            const bestMatch = exactCertId || exactPhone || exactEmail || exactName || null;
+
+            if (bestMatch) {
+              return NextResponse.json({ success: true, certificate: bestMatch });
+            }
           }
         }
       } catch (dbErr) {
